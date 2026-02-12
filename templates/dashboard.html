@@ -1,0 +1,483 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - XONILAB{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Bienvenida -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h2 class="mb-0">
+                                <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                            </h2>
+                            <p class="mb-0">Bienvenido/a, {{ session.nombre }}</p>
+                        </div>
+                        <div class="text-end">
+                            <h4 class="mb-0">{{ today }}</h4>
+                            <p class="mb-0">Sistema XONILAB - by XONIDU</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Estadísticas principales -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Ítems en Inventario
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_items }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-boxes fa-2x text-primary"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Préstamos Activos
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_prestamos }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-exchange-alt fa-2x text-success"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Alumnos Registrados
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_alumnos }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-user-graduate fa-2x text-info"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Sesiones Hoy
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ reservas_hoy_count }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-calendar-day fa-2x text-warning"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contenido principal -->
+    <div class="row">
+        <!-- Columna izquierda -->
+        <div class="col-lg-8">
+            <!-- Préstamos recientes -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-exchange-alt me-2"></i>Últimos Movimientos
+                    </h6>
+                    <a href="{{ url_for('prestamos') }}" class="btn btn-sm btn-primary">
+                        Ver Todos <i class="fas fa-arrow-right ms-1"></i>
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if prestamos_recientes %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Alumno</th>
+                                        <th>Ítem</th>
+                                        <th>Fecha Préstamo</th>
+                                        <th>Fecha Devolución</th>
+                                        <th>Cantidad</th>
+                                        <th>Estado</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for prestamo in prestamos_recientes %}
+                                        <tr>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="avatar-circle-sm bg-primary text-white me-2">
+                                                        {{ prestamo.nombre_alumno[:1]|upper }}
+                                                    </div>
+                                                    <div>
+                                                        <div class="fw-bold">{{ prestamo.nombre_alumno }}</div>
+                                                        <small class="text-muted">{{ prestamo.num_cuenta }}</small>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>{{ prestamo.nombre_item }}</td>
+                                            <td>
+                                                {% if prestamo.fecha_prestamo %}
+                                                    {{ prestamo.fecha_prestamo[:10] }}
+                                                {% else %}
+                                                    -
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if prestamo.fecha_devolucion %}
+                                                    {% set fecha_dev = prestamo.fecha_devolucion[:10] %}
+                                                    <span class="{% if fecha_dev < today %}text-danger{% else %}text-success{% endif %}">
+                                                        {{ fecha_dev }}
+                                                    </span>
+                                                {% else %}
+                                                    -
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-primary">{{ prestamo.cantidad }}</span>
+                                            </td>
+                                            <td>
+                                                {% if prestamo.estado == 'prestado' %}
+                                                    <span class="badge bg-warning">Prestado</span>
+                                                {% elif prestamo.estado == 'devuelto' %}
+                                                    <span class="badge bg-success">Devuelto</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">{{ prestamo.estado }}</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-exchange-alt fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">No hay préstamos recientes</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Reservas próximas -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-success">
+                        <i class="fas fa-calendar-alt me-2"></i>Próximas Sesiones
+                    </h6>
+                    <a href="{{ url_for('calendario') }}" class="btn btn-sm btn-success">
+                        Ver Calendario <i class="fas fa-arrow-right ms-1"></i>
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if reservas_proximas %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Fecha</th>
+                                        <th>Horario</th>
+                                        <th>Grupo</th>
+                                        <th>Materia</th>
+                                        <th>Profesor</th>
+                                        <th>Alumnos</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for reserva in reservas_proximas %}
+                                        <tr>
+                                            <td>
+                                                <span class="fw-bold">{{ reserva.fecha }}</span>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-info">
+                                                    {{ reserva.hora_inicio }} - {{ reserva.hora_fin }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-primary">{{ reserva.grupo }}</span>
+                                            </td>
+                                            <td>{{ reserva.materia }}</td>
+                                            <td>{{ reserva.profesor }}</td>
+                                            <td>
+                                                <span class="badge bg-secondary">{{ reserva.num_alumnos }}</span>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">No hay sesiones próximas programadas</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Columna derecha -->
+        <div class="col-lg-4">
+            
+
+            <!-- Accesos rápidos -->
+            <!-- Accesos rápidos -->
+<div class="card shadow">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">
+            <i class="fas fa-bolt me-2"></i>Accesos Rápidos
+        </h6>
+    </div>
+    <div class="card-body">
+        <div class="row g-2">
+            <div class="col-6">
+                <a href="{{ url_for('inventario') }}" class="btn btn-outline-primary w-100 mb-2">
+                    <i class="fas fa-boxes me-1"></i> Inventario
+                </a>
+            </div>
+            <div class="col-6">
+                <a href="{{ url_for('prestamos') }}" class="btn btn-outline-success w-100 mb-2">
+                    <i class="fas fa-exchange-alt me-1"></i> Préstamos
+                </a>
+            </div>
+            <div class="col-6">
+                <a href="{{ url_for('calendario') }}" class="btn btn-outline-warning w-100 mb-2">
+                    <i class="fas fa-calendar-alt me-1"></i> Calendario
+                </a>
+            </div>
+            <div class="col-6">
+                <a href="{{ url_for('alumnos') }}" class="btn btn-outline-info w-100 mb-2">
+                    <i class="fas fa-user-graduate me-1"></i> Alumnos
+                </a>
+            </div>
+            <div class="col-12">
+                <a href="{{ url_for('deudas') }}" class="btn btn-outline-danger w-100">
+                    <i class="fas fa-money-bill-wave me-1"></i> Deudas
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+           
+    <!-- Resumen del día -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-dark">
+                        <i class="fas fa-sun me-2"></i>Resumen del Día - {{ today }}
+                    </h6>
+                    <div class="d-flex gap-2">
+                        <span class="badge bg-primary">{{ total_items }} ítems</span>
+                        <span class="badge bg-success">{{ total_prestamos }} préstamos</span>
+                        <span class="badge bg-info">{{ total_alumnos }} alumnos</span>
+                        <span class="badge bg-warning">{{ reservas_hoy_count }} sesiones</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3 mb-3">
+                            <div class="p-3 bg-primary bg-opacity-10 rounded">
+                                <i class="fas fa-box fa-2x text-primary mb-2"></i>
+                                <h5 class="mb-1">{{ total_items }}</h5>
+                                <p class="mb-0 text-muted">Ítems totales</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="p-3 bg-success bg-opacity-10 rounded">
+                                <i class="fas fa-handshake fa-2x text-success mb-2"></i>
+                                <h5 class="mb-1">{{ total_prestamos }}</h5>
+                                <p class="mb-0 text-muted">Préstamos activos</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="p-3 bg-info bg-opacity-10 rounded">
+                                <i class="fas fa-users fa-2x text-info mb-2"></i>
+                                <h5 class="mb-1">{{ total_alumnos }}</h5>
+                                <p class="mb-0 text-muted">Alumnos activos</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="p-3 bg-warning bg-opacity-10 rounded">
+                                <i class="fas fa-calendar-check fa-2x text-warning mb-2"></i>
+                                <h5 class="mb-1">{{ reservas_hoy_count }}</h5>
+                                <p class="mb-0 text-muted">Sesiones hoy</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Estilos específicos para dashboard */
+.border-left-primary {
+    border-left: 4px solid #4e73df !important;
+}
+.border-left-success {
+    border-left: 4px solid #1cc88a !important;
+}
+.border-left-info {
+    border-left: 4px solid #36b9cc !important;
+}
+.border-left-warning {
+    border-left: 4px solid #f6c23e !important;
+}
+
+.avatar-circle-sm {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+
+/* Animaciones */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.card {
+    animation: fadeIn 0.5s ease-out;
+}
+
+/* Efectos hover */
+.card:hover {
+    transform: translateY(-2px);
+    transition: transform 0.3s ease;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .display-4 {
+        font-size: 2rem;
+    }
+    
+    .h5 {
+        font-size: 1.25rem;
+    }
+    
+    .table-responsive {
+        font-size: 0.85rem;
+    }
+}
+</style>
+
+<script>
+// Inicializar tooltips
+document.addEventListener('DOMContentLoaded', function() {
+    // Configurar tooltips de Bootstrap
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+    
+    // Actualizar hora cada minuto
+    function updateTime() {
+        const now = new Date();
+        const timeString = now.toLocaleTimeString('es-ES', { 
+            hour: '2-digit', 
+            minute: '2-digit',
+            second: '2-digit'
+        });
+        const dateString = now.toLocaleDateString('es-ES', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+        
+        const timeElement = document.querySelector('.time-display');
+        const dateElement = document.querySelector('.date-display');
+        
+        if (timeElement) {
+            timeElement.textContent = timeString;
+        }
+        if (dateElement) {
+            dateElement.textContent = dateString;
+        }
+    }
+    
+    // Actualizar cada minuto
+    setInterval(updateTime, 60000);
+    
+    // Efecto de animación para las tarjetas
+    const cards = document.querySelectorAll('.card');
+    cards.forEach((card, index) => {
+        card.style.animationDelay = `${index * 0.1}s`;
+    });
+    
+    // Mostrar notificación de carga completa
+    console.log('✅ Dashboard cargado correctamente');
+    console.log(`📊 Estadísticas: ${total_items} ítems, ${total_prestamos} préstamos, ${total_alumnos} alumnos`);
+});
+
+// Función para actualizar estadísticas en tiempo real (simulación)
+function updateStats() {
+    // En un sistema real, aquí haríamos una petición AJAX para actualizar las estadísticas
+    console.log('🔄 Actualizando estadísticas...');
+    
+    // Mostrar notificación de actualización
+    const toast = document.createElement('div');
+    toast.className = 'toast align-items-center text-white bg-primary border-0 position-fixed bottom-0 end-0 m-3';
+    toast.style.zIndex = '9999';
+    toast.innerHTML = `
+        <div class="d-flex">
+            <div class="toast-body">
+                <i class="fas fa-sync-alt fa-spin me-2"></i>
+                Actualizando estadísticas...
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    `;
+    document.body.appendChild(toast);
+    
+    const bsToast = new bootstrap.Toast(toast);
+    bsToast.show();
+    
+    // Simular actualización después de 2 segundos
+    setTimeout(() => {
+        bsToast.hide();
+        toast.remove();
+    }, 2000);
+}
+
+// Actualizar cada 5 minutos (300000 ms)
+setInterval(updateStats, 300000);
+</script>
+{% endblock %}

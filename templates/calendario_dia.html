@@ -1,0 +1,521 @@
+{% extends "base.html" %}
+
+{% block title %}Reservas del {{ fecha }} - XONILAB{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Cabecera -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <nav aria-label="breadcrumb">
+                                <ol class="breadcrumb">
+                                    <li class="breadcrumb-item"><a href="{{ url_for('calendario') }}">Calendario</a></li>
+                                    <li class="breadcrumb-item active" aria-current="page">{{ fecha_obj.strftime('%d/%m/%Y') }}</li>
+                                </ol>
+                            </nav>
+                            <h2 class="mb-0">
+                                <i class="fas fa-calendar-day me-2 text-primary"></i>
+                                {{ fecha_obj.strftime('%A, %d de %B de %Y') }}
+                            </h2>
+                            <p class="text-muted mb-0">
+                                {{ fecha_obj.strftime('%d/%m/%Y') }}
+                            </p>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <a href="{{ url_for('calendario') }}" class="btn btn-outline-primary">
+                                <i class="fas fa-calendar-alt me-1"></i> Volver al Calendario
+                            </a>
+                            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalReserva">
+                                <i class="fas fa-plus me-1"></i> Nueva Reserva
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Estadísticas del día -->
+                    <div class="row mt-4">
+                        <div class="col-md-3">
+                            <div class="stat-card">
+                                <div class="stat-icon bg-primary text-white rounded-circle p-3 d-inline-flex align-items-center justify-content-center">
+                                    <i class="fas fa-calendar-check"></i>
+                                </div>
+                                <div class="stat-content mt-3">
+                                    <h3 class="mb-0">{{ total_reservas }}</h3>
+                                    <p class="text-muted mb-0">Sesiones Programadas</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-card">
+                                <div class="stat-icon bg-success text-white rounded-circle p-3 d-inline-flex align-items-center justify-content-center">
+                                    <i class="fas fa-clock"></i>
+                                </div>
+                                <div class="stat-content mt-3">
+                                    <h3 class="mb-0">{{ horas_reservadas }}</h3>
+                                    <p class="text-muted mb-0">Horas Totales</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-card">
+                                <div class="stat-icon bg-info text-white rounded-circle p-3 d-inline-flex align-items-center justify-content-center">
+                                    <i class="fas fa-users"></i>
+                                </div>
+                                <div class="stat-content mt-3">
+                                    <h3 class="mb-0">{{ grupos_dia }}</h3>
+                                    <p class="text-muted mb-0">Grupos Diferentes</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-card">
+                                <div class="stat-icon bg-warning text-white rounded-circle p-3 d-inline-flex align-items-center justify-content-center">
+                                    <i class="fas fa-book"></i>
+                                </div>
+                                <div class="stat-content mt-3">
+                                    <h3 class="mb-0">{{ materias_dia }}</h3>
+                                    <p class="text-muted mb-0">Materias Diferentes</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vista de horarios y reservas -->
+    <div class="row">
+        <!-- Horarios del día -->
+        <div class="col-md-8">
+            <div class="card shadow mb-4">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-clock me-2"></i>Horarios del Día (7:00 - 19:00)</h5>
+                    <span class="badge bg-light text-primary">{{ horarios_disponibles|length }} horas disponibles</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="time-grid" style="max-height: 500px; overflow-y: auto;">
+                        {% for horario in horarios_detalle %}
+                            <div class="time-slot d-flex border-bottom {% if horario.ocupado %}bg-light{% endif %}"
+                                 style="transition: all 0.3s; {% if horario.es_inicio %}border-left: 4px solid #0d6efd;{% endif %}"
+                                 {% if horario.reserva %}
+                                 data-bs-toggle="tooltip" 
+                                 title="{{ horario.reserva.grupo }} - {{ horario.reserva.materia }}
+Profesor: {{ horario.reserva.profesor }}
+Hora: {{ horario.reserva.hora_inicio }}-{{ horario.reserva.hora_fin }}
+Duración: {{ horario.reserva.duracion }}h"
+                                 {% endif %}>
+                                
+                                <div class="time-label px-3 py-2" style="width: 80px; font-weight: bold; color: var(--primary-color);">
+                                    {{ horario.hora }}
+                                </div>
+                                
+                                <div class="time-content flex-grow-1 px-3 py-2 border-start">
+                                    {% if horario.ocupado %}
+                                        {% if horario.es_inicio %}
+                                            <div class="reservation-details">
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <strong class="text-primary">{{ horario.reserva.grupo }}</strong>
+                                                    <span class="badge bg-success">{{ horario.reserva.duracion }}h</span>
+                                                </div>
+                                                <small class="text-muted d-block">{{ horario.reserva.materia }}</small>
+                                                <div class="profesor-name text-muted">
+                                                    <i class="fas fa-chalkboard-teacher me-1"></i>{{ horario.reserva.profesor }}
+                                                </div>
+                                                {% if horario.reserva.num_alumnos %}
+                                                    <small class="text-muted">
+                                                        <i class="fas fa-user-graduate me-1"></i>{{ horario.reserva.num_alumnos }} alumnos
+                                                    </small>
+                                                {% endif %}
+                                            </div>
+                                        {% else %}
+                                            <div class="reservation-continue text-center py-1" style="background: #e3f2fd; border-radius: 4px;">
+                                                <small class="text-muted">
+                                                    <i class="fas fa-arrow-right me-1"></i>Continúa sesión anterior
+                                                </small>
+                                            </div>
+                                        {% endif %}
+                                    {% else %}
+                                        <div class="available-text text-center py-1">
+                                            <small class="text-success">
+                                                <i class="fas fa-check-circle me-1"></i>Disponible
+                                            </small>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Lista de reservas -->
+        <div class="col-md-4">
+            <div class="card shadow">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-list me-2"></i>Reservas Confirmadas</h5>
+                </div>
+                <div class="card-body">
+                    {% if reservas %}
+                        <div class="reservations-list" style="max-height: 500px; overflow-y: auto;">
+                            {% for reserva in reservas %}
+                                <div class="reservation-card mb-3 border rounded" style="transition: all 0.3s;">
+                                    <div class="reservation-header d-flex justify-content-between align-items-center p-3" 
+                                         style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                                        <div class="reservation-time">
+                                            <i class="fas fa-clock me-1"></i>
+                                            {{ reserva.hora_inicio }} - {{ reserva.hora_fin }}
+                                        </div>
+                                        <div class="reservation-actions">
+                                            {% if session.rol in ['admin', 'profesor'] %}
+                                                <a href="{{ url_for('cancelar_reserva', id_reserva=reserva.id_reserva) }}" 
+                                                   class="btn btn-sm btn-light"
+                                                   onclick="return confirm('¿Cancelar esta reserva?')"
+                                                   title="Cancelar reserva">
+                                                    <i class="fas fa-times"></i>
+                                                </a>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="reservation-body p-3">
+                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                            <h6 class="mb-0 text-primary">{{ reserva.grupo }}</h6>
+                                            <span class="badge bg-primary">{{ reserva.duracion }}h</span>
+                                        </div>
+                                        <p class="mb-2 fw-bold">{{ reserva.materia }}</p>
+                                        <div class="reservation-info d-flex flex-wrap gap-2 mb-2">
+                                            <small class="text-muted">
+                                                <i class="fas fa-chalkboard-teacher me-1"></i>
+                                                {{ reserva.profesor }}
+                                            </small>
+                                            <small class="text-muted">
+                                                <i class="fas fa-user-graduate me-1"></i>
+                                                {{ reserva.num_alumnos }} alumnos
+                                            </small>
+                                        </div>
+                                        {% if reserva.observaciones %}
+                                            <div class="reservation-notes mt-2 p-2 bg-light rounded">
+                                                <small class="text-muted">
+                                                    <i class="fas fa-sticky-note me-1"></i>
+                                                    {{ reserva.observaciones[:100] }}{% if reserva.observaciones|length > 100 %}...{% endif %}
+                                                </small>
+                                            </div>
+                                        {% endif %}
+                                        <div class="reservation-footer mt-2 text-end">
+                                            <small class="text-muted">
+                                                Reservado por: {{ reserva.responsable }}
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-calendar-times fa-4x text-muted mb-3"></i>
+                            <h5 class="text-muted">No hay reservas para este día</h5>
+                            <p class="text-muted">¡Es un día disponible para nuevas sesiones!</p>
+                            <button type="button" class="btn btn-success mt-2" data-bs-toggle="modal" data-bs-target="#modalReserva">
+                                <i class="fas fa-plus me-1"></i> Crear Primera Reserva
+                            </button>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para nueva reserva -->
+<div class="modal fade" id="modalReserva" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form action="{{ url_for('reservar_sesion') }}" method="POST">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-plus-circle me-2"></i>Nueva Reserva de Sesión
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <input type="hidden" name="fecha" value="{{ fecha }}">
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Fecha</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-calendar"></i></span>
+                                <input type="text" class="form-control" value="{{ fecha_obj.strftime('%d/%m/%Y') }}" readonly>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Hora de Inicio *</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-clock"></i></span>
+                                <select class="form-select" name="hora_inicio" required>
+                                    <option value="">Seleccionar hora</option>
+                                    {% for hora in horarios_disponibles %}
+                                        <option value="{{ hora }}">{{ hora }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <small class="text-muted">Horario disponible: 7:00 - 19:00</small>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Duración *</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-hourglass-half"></i></span>
+                                <select class="form-select" name="duracion" required>
+                                    <option value="">Seleccionar duración</option>
+                                    <option value="1">1 hora</option>
+                                    <option value="2">2 horas</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Grupo *</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-users"></i></span>
+                                <input type="text" class="form-control" name="grupo" required 
+                                       placeholder="Ej: ISC-7A">
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Materia *</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-book"></i></span>
+                                <input type="text" class="form-control" name="materia" required
+                                       placeholder="Ej: Programación Web">
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Profesor *</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-chalkboard-teacher"></i></span>
+                                <input type="text" class="form-control" name="profesor" required
+                                       placeholder="Nombre del profesor">
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Número de Alumnos</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-user-graduate"></i></span>
+                                <input type="number" class="form-control" name="num_alumnos" 
+                                       min="1" max="50" placeholder="Ej: 25">
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Responsable</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-user"></i></span>
+                                <input type="text" class="form-control" value="{{ session.nombre }}" readonly>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label">Observaciones</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-sticky-note"></i></span>
+                                <textarea class="form-control" name="observaciones" rows="3"
+                                          placeholder="Equipos especiales requeridos, materiales adicionales, necesidades específicas..."></textarea>
+                            </div>
+                        </div>
+                        
+                        <div class="col-12">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong>Información importante:</strong> Las reservas deben hacerse con al menos 24 horas de anticipación. 
+                                El horario del laboratorio es de 7:00 a 19:00 horas.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i> Reservar Sesión
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Estilos para la vista de horarios */
+.time-slot:hover {
+    background-color: #f8f9fa !important;
+    transform: translateX(2px);
+}
+
+.time-slot.available:hover {
+    background-color: #d1fae5 !important;
+}
+
+.time-label {
+    min-width: 80px;
+}
+
+.reservation-details {
+    padding: 5px;
+    border-radius: 4px;
+    background: white;
+}
+
+.reservation-continue {
+    font-style: italic;
+    padding: 8px;
+}
+
+.available-text {
+    color: #059669;
+    font-weight: 500;
+    padding: 8px;
+}
+
+/* Estilos para tarjetas de reserva */
+.reservation-card {
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.reservation-card:hover {
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    transform: translateY(-2px);
+}
+
+.reservation-header {
+    border-bottom: 1px solid rgba(255,255,255,0.2);
+}
+
+.reservation-body {
+    background: white;
+}
+
+.reservation-notes {
+    border-left: 3px solid #ff9800;
+}
+
+/* Tooltips personalizados */
+.tooltip-inner {
+    max-width: 300px;
+    padding: 10px;
+    background-color: #2c3e50;
+    border-radius: 6px;
+}
+
+.bs-tooltip-top .tooltip-arrow::before {
+    border-top-color: #2c3e50;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .time-slot {
+        flex-direction: column;
+    }
+    
+    .time-label {
+        width: 100% !important;
+        border-right: none !important;
+        border-bottom: 1px solid #dee2e6;
+    }
+    
+    .time-content {
+        padding-left: 0 !important;
+        border-left: none !important;
+    }
+    
+    .reservations-list {
+        max-height: 300px !important;
+    }
+}
+</style>
+
+<script>
+// Función para cancelar reserva
+function cancelReserva(idReserva) {
+    if (confirm('¿Está seguro de cancelar esta reserva? Esta acción no se puede deshacer.')) {
+        window.location.href = '/calendario/cancelar/' + idReserva;
+    }
+    return false;
+}
+
+// Inicializar tooltips
+document.addEventListener('DOMContentLoaded', function() {
+    // Inicializar tooltips de Bootstrap
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+    
+    // Validar disponibilidad al cambiar hora
+    const horaSelect = document.querySelector('select[name="hora_inicio"]');
+    const duracionSelect = document.querySelector('select[name="duracion"]');
+    
+    function validarHorario() {
+        const hora = horaSelect.value;
+        const duracion = duracionSelect.value;
+        
+        if (hora && duracion) {
+            const horaInicio = parseInt(hora.split(':')[0]);
+            const duracionInt = parseInt(duracion);
+            const horaFin = horaInicio + duracionInt;
+            
+            if (horaFin > 19) {
+                alert('⚠️ La reserva se extiende más allá del horario permitido (19:00).\nPor favor, seleccione una hora más temprano o reduzca la duración.');
+                duracionSelect.value = '';
+            }
+        }
+    }
+    
+    if (horaSelect && duracionSelect) {
+        horaSelect.addEventListener('change', validarHorario);
+        duracionSelect.addEventListener('change', validarHorario);
+    }
+    
+    // Mostrar información de disponibilidad
+    const horariosOcupados = document.querySelectorAll('.time-slot.bg-light');
+    if (horariosOcupados.length > 0) {
+        console.log(`📅 Hoy hay ${horariosOcupados.length} horas ocupadas de 12 posibles`);
+    }
+    
+    // Efecto de carga para las reservas
+    const reservationCards = document.querySelectorAll('.reservation-card');
+    reservationCards.forEach((card, index) => {
+        card.style.animationDelay = `${index * 0.1}s`;
+        card.style.animation = 'fadeInUp 0.5s ease-out forwards';
+    });
+});
+
+// Efecto de animación
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+`;
+document.head.appendChild(style);
+</script>
+{% endblock %}

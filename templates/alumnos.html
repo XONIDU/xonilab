@@ -1,0 +1,348 @@
+{% extends "base.html" %}
+
+{% block title %}Alumnos - XONILAB{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Cabecera -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="page-title">Gestión de Alumnos</h1>
+            <p class="page-subtitle">Registro y seguimiento de estudiantes</p>
+        </div>
+    </div>
+
+    <!-- Estadísticas -->
+    <div class="row mb-6">
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="stat-card">
+                <i class="fas fa-user-graduate"></i>
+                <div class="stat-number">{{ total_alumnos }}</div>
+                <div class="stat-label">Total de Alumnos</div>
+            </div>
+        </div>
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="stat-card">
+                <i class="fas fa-check-circle"></i>
+                <div class="stat-number">{{ alumnos_activos }}</div>
+                <div class="stat-label">Alumnos Activos</div>
+            </div>
+        </div>
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="stat-card">
+                <i class="fas fa-times-circle"></i>
+                <div class="stat-number">{{ alumnos_inactivos }}</div>
+                <div class="stat-label">Alumnos Inactivos</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros y búsqueda -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="filtros-container">
+                <form method="GET" action="{{ url_for('alumnos') }}" class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Buscar</label>
+                        <input type="text" class="form-control" name="buscar" value="{{ buscar }}" placeholder="Nombre, número de cuenta o email...">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Grupo</label>
+                        <select class="form-select" name="grupo">
+                            <option value="">Todos los grupos</option>
+                            {% for grupo in grupos %}
+                                <option value="{{ grupo }}" {% if grupo_filtro == grupo %}selected{% endif %}>{{ grupo }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Estado</label>
+                        <select class="form-select" name="estado">
+                            <option value="">Todos</option>
+                            <option value="activo" {% if estado == 'activo' %}selected{% endif %}>Activo</option>
+                            <option value="inactivo" {% if estado == 'inactivo' %}selected{% endif %}>Inactivo</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-search me-1"></i> Filtrar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Botón para agregar nuevo alumno -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalAgregarAlumno">
+                <i class="fas fa-plus me-1"></i> Agregar Nuevo Alumno
+            </button>
+        </div>
+    </div>
+
+    <!-- Tabla de alumnos -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="fas fa-list me-2"></i>Lista de Alumnos</span>
+                    <span class="badge bg-primary">{{ alumnos|length }} alumnos</span>
+                </div>
+                <div class="card-body">
+                    {% if alumnos %}
+                        <div class="table-responsive">
+                            <table class="table table-hover datatable">
+                                <thead>
+                                    <tr>
+                                        <th>Nombre</th>
+                                        <th>Número de Cuenta</th>
+                                        <th>Grupo</th>
+                                        <th>Semestre</th>
+                                        <th>Contacto</th>
+                                        <th>Préstamos Activos</th>
+                                        <th>Deudas Pendientes</th>
+                                        <th>Estado</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for alumno in alumnos %}
+                                    <tr>
+                                        <td>
+                                            <strong>{{ alumno.nombre }}</strong><br>
+                                            <small class="text-muted">{{ alumno.email }}</small>
+                                        </td>
+                                        <td>{{ alumno.num_cuenta }}</td>
+                                        <td>
+                                            {% if alumno.grupo %}
+                                                <span class="badge bg-info">{{ alumno.grupo }}</span>
+                                            {% else %}
+                                                <span class="text-muted">Sin grupo</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if alumno.semestre %}
+                                                <span class="badge bg-secondary">{{ alumno.semestre }}°</span>
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if alumno.telefono %}
+                                                <small>{{ alumno.telefono }}</small><br>
+                                            {% endif %}
+                                            <small>{{ alumno.email }}</small>
+                                        </td>
+                                        <td>
+                                            {% if alumno.prestamos_activos > 0 %}
+                                                <span class="badge bg-warning">{{ alumno.prestamos_activos }}</span>
+                                            {% else %}
+                                                <span class="badge bg-success">0</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if alumno.deudas_pendientes > 0 %}
+                                                <span class="badge bg-danger">{{ alumno.deudas_pendientes }}</span>
+                                            {% else %}
+                                                <span class="badge bg-success">0</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if alumno.activo == '1' %}
+                                                <span class="badge bg-success">Activo</span>
+                                            {% else %}
+                                                <span class="badge bg-danger">Inactivo</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <button type="button" class="btn btn-outline-primary" 
+                                                        data-bs-toggle="modal" 
+                                                        data-bs-target="#modalEditarAlumno"
+                                                        data-id="{{ alumno.id_alumno }}"
+                                                        data-nombre="{{ alumno.nombre }}"
+                                                        data-num_cuenta="{{ alumno.num_cuenta }}"
+                                                        data-grupo="{{ alumno.grupo }}"
+                                                        data-semestre="{{ alumno.semestre }}"
+                                                        data-telefono="{{ alumno.telefono }}"
+                                                        data-email="{{ alumno.email }}"
+                                                        data-activo="{{ alumno.activo }}">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                {% if session.rol == 'admin' %}
+                                                <a href="{{ url_for('eliminar_alumno', id_alumno=alumno.id_alumno) }}" 
+                                                   class="btn btn-outline-danger"
+                                                   onclick="return confirm('¿Eliminar este alumno?')">
+                                                    <i class="fas fa-trash"></i>
+                                                </a>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-user-graduate fa-4x text-muted mb-3"></i>
+                            <h5 class="text-muted">No hay alumnos registrados</h5>
+                            <p class="text-muted">Comienza agregando nuevos alumnos al sistema</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para agregar alumno -->
+<div class="modal fade" id="modalAgregarAlumno" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form action="{{ url_for('agregar_alumno') }}" method="POST">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-plus-circle me-2"></i>Agregar Nuevo Alumno
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Nombre Completo *</label>
+                            <input type="text" class="form-control" name="nombre" required placeholder="Ej: Juan Pérez López">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Número de Cuenta *</label>
+                            <input type="text" class="form-control" name="num_cuenta" required placeholder="Ej: 123456789">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Grupo</label>
+                            <input type="text" class="form-control" name="grupo" placeholder="Ej: ISC-7A">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Semestre</label>
+                            <input type="number" class="form-control" name="semestre" min="1" max="12" placeholder="Ej: 7">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Teléfono</label>
+                            <input type="tel" class="form-control" name="telefono" placeholder="Ej: 7711234567">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" name="email" placeholder="Ej: alumno@esat.edu.mx">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">Guardar Alumno</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para editar alumno -->
+<div class="modal fade" id="modalEditarAlumno" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form action="#" method="POST" id="formEditarAlumno">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-edit me-2"></i>Editar Alumno
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <input type="hidden" name="id_alumno" id="editIdAlumno">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Nombre Completo *</label>
+                            <input type="text" class="form-control" name="nombre" id="editNombre" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Número de Cuenta *</label>
+                            <input type="text" class="form-control" name="num_cuenta" id="editNumCuenta" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Grupo</label>
+                            <input type="text" class="form-control" name="grupo" id="editGrupo">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Semestre</label>
+                            <input type="number" class="form-control" name="semestre" id="editSemestre" min="1" max="12">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Teléfono</label>
+                            <input type="tel" class="form-control" name="telefono" id="editTelefono">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" name="email" id="editEmail">
+                        </div>
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label">Estado</label>
+                            <select class="form-select" name="activo" id="editActivo">
+                                <option value="1">Activo</option>
+                                <option value="0">Inactivo</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Actualizar Alumno</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Script para el modal de edición de alumno
+document.addEventListener('DOMContentLoaded', function() {
+    const modalEditar = document.getElementById('modalEditarAlumno');
+    
+    modalEditar.addEventListener('show.bs.modal', function(event) {
+        const button = event.relatedTarget;
+        
+        // Obtener datos del botón
+        const id = button.getAttribute('data-id');
+        const nombre = button.getAttribute('data-nombre');
+        const num_cuenta = button.getAttribute('data-num_cuenta');
+        const grupo = button.getAttribute('data-grupo');
+        const semestre = button.getAttribute('data-semestre');
+        const telefono = button.getAttribute('data-telefono');
+        const email = button.getAttribute('data-email');
+        const activo = button.getAttribute('data-activo');
+        
+        // Actualizar formulario
+        document.getElementById('editIdAlumno').value = id;
+        document.getElementById('editNombre').value = nombre;
+        document.getElementById('editNumCuenta').value = num_cuenta;
+        document.getElementById('editGrupo').value = grupo;
+        document.getElementById('editSemestre').value = semestre;
+        document.getElementById('editTelefono').value = telefono;
+        document.getElementById('editEmail').value = email;
+        document.getElementById('editActivo').value = activo;
+        
+        // Actualizar acción del formulario
+        document.getElementById('formEditarAlumno').action = `/alumnos/editar/${id}`;
+    });
+    
+    // Configurar DataTables
+    $('.datatable').DataTable({
+        language: {
+            url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/es-ES.json'
+        },
+        pageLength: 25,
+        responsive: true,
+        order: [[0, 'asc']]
+    });
+});
+</script>
+{% endblock %}

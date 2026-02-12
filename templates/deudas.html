@@ -1,0 +1,272 @@
+{% extends "base.html" %}
+
+{% block title %}Deudas - XONILAB{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Cabecera -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="page-title">Gestión de Deudas</h1>
+            <p class="page-subtitle">Control de adeudos por daños o pérdidas</p>
+        </div>
+    </div>
+
+    <!-- Estadísticas -->
+    <div class="row mb-6">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="stat-card">
+                <i class="fas fa-money-bill-wave"></i>
+                <div class="stat-number">{{ total_deudas }}</div>
+                <div class="stat-label">Total de Deudas</div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="stat-card">
+                <i class="fas fa-clock"></i>
+                <div class="stat-number">{{ deudas_pendientes }}</div>
+                <div class="stat-label">Deudas Pendientes</div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="stat-card">
+                <i class="fas fa-check-circle"></i>
+                <div class="stat-number">{{ deudas_pagadas }}</div>
+                <div class="stat-label">Deudas Pagadas</div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="stat-card">
+                <i class="fas fa-dollar-sign"></i>
+                <div class="stat-number">${{ total_monto|round(2) }}</div>
+                <div class="stat-label">Monto Total</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Resumen financiero -->
+    <div class="row mb-6">
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-warning text-white">
+                    <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Deudas Pendientes</h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center">
+                        <h2 class="display-4 text-warning">${{ monto_pendiente|round(2) }}</h2>
+                        <p class="text-muted">{{ deudas_pendientes }} deuda(s) por cobrar</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-check-circle me-2"></i>Deudas Pagadas</h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center">
+                        <h2 class="display-4 text-success">${{ monto_pagado|round(2) }}</h2>
+                        <p class="text-muted">{{ deudas_pagadas }} deuda(s) pagadas</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros y búsqueda -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="filtros-container">
+                <form method="GET" action="{{ url_for('deudas') }}" class="row g-3">
+                    <div class="col-md-5">
+                        <label class="form-label">Buscar</label>
+                        <input type="text" class="form-control" name="buscar" value="{{ buscar }}" placeholder="Alumno, ítem o número de cuenta...">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Estado</label>
+                        <select class="form-select" name="estado">
+                            <option value="">Todos los estados</option>
+                            <option value="pendiente" {% if estado == 'pendiente' %}selected{% endif %}>Pendiente</option>
+                            <option value="pagado" {% if estado == 'pagado' %}selected{% endif %}>Pagado</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-search me-1"></i> Filtrar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Botón para nueva deuda -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalNuevaDeuda">
+                <i class="fas fa-plus me-1"></i> Nueva Deuda
+            </button>
+        </div>
+    </div>
+
+    <!-- Tabla de deudas -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="fas fa-list me-2"></i>Historial de Deudas</span>
+                    <span class="badge bg-primary">{{ deudas|length }} registros</span>
+                </div>
+                <div class="card-body">
+                    {% if deudas %}
+                        <div class="table-responsive">
+                            <table class="table table-hover datatable">
+                                <thead>
+                                    <tr>
+                                        <th>Alumno</th>
+                                        <th>Ítem</th>
+                                        <th>Descripción del Daño</th>
+                                        <th>Monto</th>
+                                        <th>Fecha Deuda</th>
+                                        <th>Fecha Pago</th>
+                                        <th>Estado</th>
+                                        <th>Observaciones</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for deuda in deudas %}
+                                    <tr>
+                                        <td>
+                                            <strong>{{ deuda.nombre_alumno }}</strong><br>
+                                            <small class="text-muted">{{ deuda.num_cuenta }}</small>
+                                        </td>
+                                        <td>{{ deuda.nombre_item }}</td>
+                                        <td>
+                                            {{ deuda.descripcion_dano[:50] }}{% if deuda.descripcion_dano|length > 50 %}...{% endif %}
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-danger">${{ deuda.monto }}</span>
+                                        </td>
+                                        <td>{{ deuda.fecha_deuda[:16] }}</td>
+                                        <td>
+                                            {% if deuda.fecha_pago %}
+                                                {{ deuda.fecha_pago[:16] }}
+                                            {% else %}
+                                                <span class="text-muted">Pendiente</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if deuda.estado == 'pendiente' %}
+                                                <span class="badge bg-warning">Pendiente</span>
+                                            {% else %}
+                                                <span class="badge bg-success">Pagado</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if deuda.observaciones %}
+                                                {{ deuda.observaciones[:30] }}{% if deuda.observaciones|length > 30 %}...{% endif %}
+                                            {% else %}
+                                                <span class="text-muted">Sin observaciones</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if deuda.estado == 'pendiente' %}
+                                                <a href="{{ url_for('pagar_deuda', id_deuda=deuda.id_deuda) }}" 
+                                                   class="btn btn-sm btn-success"
+                                                   onclick="return confirm('¿Marcar esta deuda como pagada?')">
+                                                    <i class="fas fa-check me-1"></i> Pagar
+                                                </a>
+                                            {% else %}
+                                                <span class="text-muted">Pagado</span>
+                                            {% endif %}
+                                            {% if session.rol == 'admin' %}
+                                                <a href="{{ url_for('eliminar_deuda', id_deuda=deuda.id_deuda) }}" 
+                                                   class="btn btn-sm btn-outline-danger"
+                                                   onclick="return confirm('¿Eliminar esta deuda?')">
+                                                    <i class="fas fa-trash"></i>
+                                                </a>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-money-bill-wave fa-4x text-muted mb-3"></i>
+                            <h5 class="text-muted">No hay deudas registradas</h5>
+                            <p class="text-muted">Comienza registrando una nueva deuda</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para nueva deuda -->
+<div class="modal fade" id="modalNuevaDeuda" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form action="{{ url_for('nueva_deuda') }}" method="POST">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-plus-circle me-2"></i>Nueva Deuda
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Préstamo *</label>
+                            <select class="form-select" name="prestamo" required>
+                                <option value="">Seleccionar préstamo...</option>
+                                {% for prestamo in prestamos %}
+                                    {% if prestamo.estado == 'devuelto' %}
+                                        <option value="{{ prestamo.id_prestamo }}">
+                                            {{ prestamo.nombre_alumno }} - {{ prestamo.nombre_item }} ({{ prestamo.fecha_prestamo[:10] }})
+                                        </option>
+                                    {% endif %}
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Monto *</label>
+                            <input type="number" class="form-control" name="monto" required min="0" step="0.01" placeholder="0.00">
+                        </div>
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label">Descripción del Daño *</label>
+                            <textarea class="form-control" name="descripcion_dano" required rows="3" placeholder="Describa el daño o pérdida del material..."></textarea>
+                        </div>
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label">Observaciones</label>
+                            <textarea class="form-control" name="observaciones" rows="3" placeholder="Observaciones adicionales..."></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">Registrar Deuda</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Configurar DataTables
+    $('.datatable').DataTable({
+        language: {
+            url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/es-ES.json'
+        },
+        pageLength: 25,
+        responsive: true,
+        order: [[4, 'desc']] // Ordenar por fecha de deuda descendente
+    });
+});
+</script>
+{% endblock %}

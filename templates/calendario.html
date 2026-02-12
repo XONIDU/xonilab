@@ -1,0 +1,399 @@
+{% extends "base.html" %}
+
+{% block title %}Calendario de Sesiones - XONILAB{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Cabecera con navegación -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center gap-3">
+                            <a href="{{ url_for('calendario', year=prev_month[0], month=prev_month[1]) }}" 
+                               class="btn btn-outline-primary">
+                                <i class="fas fa-chevron-left"></i> Anterior
+                            </a>
+                            <h2 class="mb-0 text-primary">
+                                <i class="fas fa-calendar-alt me-2"></i>
+                                {{ month_name }} {{ year }}
+                            </h2>
+                            <a href="{{ url_for('calendario', year=next_month[0], month=next_month[1]) }}" 
+                               class="btn btn-outline-primary">
+                                Siguiente <i class="fas fa-chevron-right"></i>
+                            </a>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <a href="{{ url_for('calendario') }}" class="btn btn-primary">
+                                <i class="fas fa-calendar-day me-1"></i> Hoy
+                            </a>
+                            <a href="{{ url_for('calendario_dia', fecha=today) }}" class="btn btn-success">
+                                <i class="fas fa-plus me-1"></i> Nueva Reserva
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <!-- Estadísticas rápidas -->
+                    <div class="row mt-4">
+                        <div class="col-md-3">
+                            <div class="stat-card">
+                                <div class="stat-icon bg-primary text-white rounded-circle p-3 d-inline-flex align-items-center justify-content-center">
+                                    <i class="fas fa-calendar-check"></i>
+                                </div>
+                                <div class="stat-content mt-3">
+                                    <h3 class="mb-0">{{ total_reservas }}</h3>
+                                    <p class="text-muted mb-0">Sesiones Reservadas</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-card">
+                                <div class="stat-icon bg-success text-white rounded-circle p-3 d-inline-flex align-items-center justify-content-center">
+                                    <i class="fas fa-clock"></i>
+                                </div>
+                                <div class="stat-content mt-3">
+                                    <h3 class="mb-0">{{ horas_totales }}</h3>
+                                    <p class="text-muted mb-0">Horas Totales</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-card">
+                                <div class="stat-icon bg-info text-white rounded-circle p-3 d-inline-flex align-items-center justify-content-center">
+                                    <i class="fas fa-users"></i>
+                                </div>
+                                <div class="stat-content mt-3">
+                                    <h3 class="mb-0">{{ grupos_unicos }}</h3>
+                                    <p class="text-muted mb-0">Grupos Únicos</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-card">
+                                <div class="stat-icon bg-warning text-white rounded-circle p-3 d-inline-flex align-items-center justify-content-center">
+                                    <i class="fas fa-chalkboard-teacher"></i>
+                                </div>
+                                <div class="stat-content mt-3">
+                                    <h3 class="mb-0">{{ profesores_unicos }}</h3>
+                                    <p class="text-muted mb-0">Profesores</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Calendario -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-body p-0">
+                    <!-- Encabezados de días de la semana -->
+                    <div class="calendar-weekdays d-grid" style="grid-template-columns: repeat(7, 1fr); gap: 1px; background: #dee2e6;">
+                        {% for day in ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'] %}
+                            <div class="calendar-weekday text-center py-3 bg-white fw-bold text-primary">
+                                {{ day }}
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Días del calendario -->
+                    <div class="calendar-days d-grid" style="grid-template-columns: repeat(7, 1fr); gap: 1px; background: #dee2e6;">
+                        {% for week in calendar %}
+                            {% for day in week %}
+                                {% if day %}
+                                    <div class="calendar-day bg-white position-relative" 
+                                         onclick="window.location.href='{{ url_for('calendario_dia', fecha=day.date) }}'"
+                                         style="min-height: 120px; cursor: pointer; transition: all 0.3s;"
+                                         onmouseover="this.style.backgroundColor='#f8f9fa'" 
+                                         onmouseout="this.style.backgroundColor='white'">
+                                        
+                                        <!-- Número del día -->
+                                        <div class="day-number position-absolute top-0 start-0 m-2">
+                                            <span class="badge {% if day.is_today %}bg-primary{% else %}bg-light text-dark{% endif %} rounded-circle p-2">
+                                                {{ day.day }}
+                                            </span>
+                                        </div>
+                                        
+                                        <!-- Indicador de número de reservas -->
+                                        {% if day.reservas_count > 0 %}
+                                            <span class="position-absolute top-0 end-0 m-2 badge bg-danger rounded-pill">
+                                                {{ day.reservas_count }}
+                                            </span>
+                                        {% endif %}
+                                        
+                                        <!-- Reservas del día -->
+                                        <div class="day-reservations mt-5 mx-2">
+                                            {% set day_reservations = [] %}
+                                            {% for reserva in reservas_mes %}
+                                                {% if reserva.fecha == day.date %}
+                                                    {% set _ = day_reservations.append(reserva) %}
+                                                {% endif %}
+                                            {% endfor %}
+                                            
+                                            {% for reserva in day_reservations[:3] %}
+                                                <div class="reservation-item mb-1 p-1 rounded" 
+                                                     style="background: #fff3cd; border-left: 3px solid #ffc107;"
+                                                     title="{{ reserva.grupo }} - {{ reserva.materia }}
+Hora: {{ reserva.hora_inicio }}-{{ reserva.hora_fin }}
+Profesor: {{ reserva.profesor }}
+Duración: {{ reserva.duracion }}h">
+                                                    <small class="d-block text-truncate">
+                                                        <i class="fas fa-clock me-1"></i>
+                                                        {{ reserva.hora_inicio }}
+                                                        <span class="badge bg-warning text-dark ms-1">{{ reserva.duracion }}h</span>
+                                                    </small>
+                                                    <small class="d-block text-truncate fw-bold">
+                                                        {{ reserva.grupo }}
+                                                    </small>
+                                                </div>
+                                            {% endfor %}
+                                            
+                                            {% if day.reservas_count > 3 %}
+                                                <div class="reservation-more text-center p-1 rounded" style="background: #e7f1ff;">
+                                                    <small class="text-primary">
+                                                        +{{ day.reservas_count - 3 }} más
+                                                    </small>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        <!-- Indicadores visuales -->
+                                        {% if day.is_today %}
+                                            <div class="position-absolute bottom-0 start-0 w-100" style="height: 3px; background: #0d6efd;"></div>
+                                        {% endif %}
+                                        {% if day.is_weekend %}
+                                            <div class="position-absolute top-0 start-0 w-100 h-100" style="background: rgba(248, 249, 250, 0.5); pointer-events: none;"></div>
+                                        {% endif %}
+                                    </div>
+                                {% else %}
+                                    <!-- Día vacío (fuera del mes) -->
+                                    <div class="calendar-day" style="min-height: 120px; background: #f8f9fa;"></div>
+                                {% endif %}
+                            {% endfor %}
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leyenda -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">
+                        <i class="fas fa-key me-2"></i>Leyenda del Calendario
+                    </h5>
+                    <div class="d-flex flex-wrap gap-4">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="legend-box rounded" style="width: 20px; height: 20px; background: #0d6efd;"></div>
+                            <span>Hoy</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="legend-box rounded" style="width: 20px; height: 20px; background: #fff3cd; border-left: 3px solid #ffc107;"></div>
+                            <span>Con reservas</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="legend-box rounded" style="width: 20px; height: 20px; background: #f8f9fa; border: 1px solid #dee2e6;"></div>
+                            <span>Fin de semana</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="legend-box rounded" style="width: 20px; height: 20px; background: #e7f1ff;"></div>
+                            <span>Más reservas</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="legend-box rounded" style="width: 20px; height: 20px; background: white; border: 1px solid #dee2e6;"></div>
+                            <span>Disponible</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Próximas sesiones -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-calendar-week me-2"></i>Próximas Sesiones del Mes
+                    </h5>
+                    <span class="badge bg-light text-primary">{{ reservas_mes|length }} sesiones</span>
+                </div>
+                <div class="card-body">
+                    {% if reservas_mes %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Fecha</th>
+                                        <th>Horario</th>
+                                        <th>Grupo</th>
+                                        <th>Materia</th>
+                                        <th>Profesor</th>
+                                        <th>Duración</th>
+                                        <th>Alumnos</th>
+                                        <th>Estado</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for reserva in reservas_mes[:15] %}
+                                        {% set es_futura = reserva.fecha >= today %}
+                                        <tr class="{% if not es_futura %}table-secondary{% endif %}">
+                                            <td>
+                                                <i class="fas fa-calendar-day me-1"></i>
+                                                {{ reserva.fecha }}
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-info">
+                                                    {{ reserva.hora_inicio }} - {{ reserva.hora_fin }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-primary">{{ reserva.grupo }}</span>
+                                            </td>
+                                            <td>{{ reserva.materia[:20] }}{% if reserva.materia|length > 20 %}...{% endif %}</td>
+                                            <td>{{ reserva.profesor }}</td>
+                                            <td>
+                                                <span class="badge bg-success">{{ reserva.duracion }}h</span>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-secondary">{{ reserva.num_alumnos }}</span>
+                                            </td>
+                                            <td>
+                                                {% if reserva.estado == 'confirmada' %}
+                                                    <span class="badge bg-success">Confirmada</span>
+                                                {% else %}
+                                                    <span class="badge bg-warning">{{ reserva.estado }}</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm">
+                                                    <a href="{{ url_for('calendario_dia', fecha=reserva.fecha) }}" 
+                                                       class="btn btn-outline-primary" title="Ver día">
+                                                        <i class="fas fa-eye"></i>
+                                                    </a>
+                                                    {% if session.rol in ['admin', 'profesor'] %}
+                                                        <a href="{{ url_for('cancelar_reserva', id_reserva=reserva.id_reserva) }}" 
+                                                           class="btn btn-outline-danger"
+                                                           title="Cancelar reserva"
+                                                           onclick="return confirm('¿Cancelar esta reserva?')">
+                                                            <i class="fas fa-times"></i>
+                                                        </a>
+                                                    {% endif %}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-calendar-times fa-4x text-muted mb-3"></i>
+                            <h5 class="text-muted">No hay sesiones programadas para este mes</h5>
+                            <p class="text-muted">Haz clic en "Nueva Reserva" para programar una sesión</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Estilos específicos para el calendario */
+.calendar-day {
+    position: relative;
+}
+
+.calendar-day:hover {
+    transform: scale(1.01);
+    z-index: 1;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+.reservation-item {
+    font-size: 0.75rem;
+    overflow: hidden;
+}
+
+.reservation-item:hover {
+    background: #ffe8a1 !important;
+}
+
+.stat-card {
+    text-align: center;
+    padding: 20px;
+    background: white;
+    border-radius: 10px;
+    border: 1px solid #dee2e6;
+    transition: all 0.3s;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.stat-icon {
+    font-size: 1.5rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .calendar-day {
+        min-height: 100px !important;
+    }
+    
+    .day-number .badge {
+        padding: 4px 8px !important;
+        font-size: 0.8rem;
+    }
+    
+    .reservation-item {
+        font-size: 0.7rem;
+        padding: 2px !important;
+    }
+}
+</style>
+
+<script>
+// Función para mejorar la interactividad del calendario
+document.addEventListener('DOMContentLoaded', function() {
+    // Añadir tooltips a las reservas
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[title]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+    
+    // Resaltar el día actual
+    const todayCells = document.querySelectorAll('.calendar-day');
+    todayCells.forEach(cell => {
+        if (cell.querySelector('.bg-primary')) {
+            cell.style.boxShadow = '0 0 0 2px #0d6efd';
+        }
+    });
+    
+    // Efecto de clic en los días
+    const days = document.querySelectorAll('.calendar-day');
+    days.forEach(day => {
+        if (!day.classList.contains('empty')) {
+            day.addEventListener('click', function() {
+                this.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    this.style.transform = '';
+                }, 150);
+            });
+        }
+    });
+});
+</script>
+{% endblock %}

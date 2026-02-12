@@ -1,0 +1,922 @@
+{% extends "base.html" %}
+
+{% block title %}Reportes y Estadísticas - XONILAB{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Cabecera -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h2 class="mb-0 text-primary">
+                                <i class="fas fa-chart-bar me-2"></i>Reportes y Estadísticas
+                            </h2>
+                            <p class="text-muted mb-0">Análisis completo del sistema - {{ today }}</p>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-primary" onclick="window.print()">
+                                <i class="fas fa-print me-1"></i> Imprimir Reporte
+                            </button>
+                            <button class="btn btn-success" onclick="exportToPDF()">
+                                <i class="fas fa-file-pdf me-1"></i> Exportar PDF
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Filtros -->
+                    <div class="row mt-4">
+                        <div class="col-md-12">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5 class="card-title mb-3">
+                                        <i class="fas fa-filter me-2"></i>Filtros de Reporte
+                                    </h5>
+                                    <form id="filtrosReporte" class="row g-3">
+                                        <div class="col-md-3">
+                                            <label class="form-label">Tipo de Reporte</label>
+                                            <select class="form-select" id="tipoReporte">
+                                                <option value="general">General</option>
+                                                <option value="inventario">Inventario</option>
+                                                <option value="prestamos">Préstamos</option>
+                                                <option value="alumnos">Alumnos</option>
+                                                <option value="reservas">Reservas</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">Período</label>
+                                            <select class="form-select" id="periodo">
+                                                <option value="hoy">Hoy</option>
+                                                <option value="semana">Esta semana</option>
+                                                <option value="mes" selected>Este mes</option>
+                                                <option value="trimestre">Este trimestre</option>
+                                                <option value="anio">Este año</option>
+                                                <option value="personalizado">Personalizado</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">Desde</label>
+                                            <input type="date" class="form-control" id="fechaDesde" value="{{ today }}">
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">Hasta</label>
+                                            <input type="date" class="form-control" id="fechaHasta" value="{{ today }}">
+                                        </div>
+                                        <div class="col-md-12 text-end">
+                                            <button type="submit" class="btn btn-primary">
+                                                <i class="fas fa-sync-alt me-1"></i> Actualizar Reporte
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Estadísticas Generales -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Estadísticas Generales</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-xl-2 col-md-4 col-sm-6 mb-4">
+                            <div class="stat-card text-center p-4 rounded" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                                <i class="fas fa-boxes fa-3x mb-3"></i>
+                                <h3 class="mb-1">{{ total_items }}</h3>
+                                <p class="mb-0">Items en Inventario</p>
+                            </div>
+                        </div>
+                        <div class="col-xl-2 col-md-4 col-sm-6 mb-4">
+                            <div class="stat-card text-center p-4 rounded" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white;">
+                                <i class="fas fa-exchange-alt fa-3x mb-3"></i>
+                                <h3 class="mb-1">{{ total_prestamos }}</h3>
+                                <p class="mb-0">Préstamos Totales</p>
+                            </div>
+                        </div>
+                        <div class="col-xl-2 col-md-4 col-sm-6 mb-4">
+                            <div class="stat-card text-center p-4 rounded" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white;">
+                                <i class="fas fa-user-graduate fa-3x mb-3"></i>
+                                <h3 class="mb-1">{{ total_alumnos }}</h3>
+                                <p class="mb-0">Alumnos Registrados</p>
+                            </div>
+                        </div>
+                        <div class="col-xl-2 col-md-4 col-sm-6 mb-4">
+                            <div class="stat-card text-center p-4 rounded" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white;">
+                                <i class="fas fa-calendar-check fa-3x mb-3"></i>
+                                <h3 class="mb-1">{{ total_reservas }}</h3>
+                                <p class="mb-0">Sesiones Reservadas</p>
+                            </div>
+                        </div>
+                        <div class="col-xl-2 col-md-4 col-sm-6 mb-4">
+                            <div class="stat-card text-center p-4 rounded" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: white;">
+                                <i class="fas fa-money-bill-wave fa-3x mb-3"></i>
+                                <h3 class="mb-1">{{ total_deudas }}</h3>
+                                <p class="mb-0">Deudas Registradas</p>
+                            </div>
+                        </div>
+                        <div class="col-xl-2 col-md-4 col-sm-6 mb-4">
+                            <div class="stat-card text-center p-4 rounded" style="background: linear-gradient(135deg, #30cfd0 0%, #330867 100%); color: white;">
+                                <i class="fas fa-chart-line fa-3x mb-3"></i>
+                                <h3 class="mb-1">{{ total_items + total_prestamos + total_alumnos + total_reservas + total_deudas }}</h3>
+                                <p class="mb-0">Registros Totales</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reportes de Inventario -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card shadow h-100">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-box-open me-2"></i>Inventario por Categoría</h5>
+                </div>
+                <div class="card-body">
+                    {% if categorias %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Categoría</th>
+                                        <th>Cantidad</th>
+                                        <th>Porcentaje</th>
+                                        <th>Progreso</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for cat in categorias %}
+                                        {% set porcentaje = (cat.cantidad * 100 / total_items)|round(1) %}
+                                        <tr>
+                                            <td>
+                                                <i class="fas fa-folder me-2"></i>
+                                                {{ cat.categoria }}
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-primary">{{ cat.cantidad }}</span>
+                                            </td>
+                                            <td>{{ porcentaje }}%</td>
+                                            <td>
+                                                <div class="progress" style="height: 10px;">
+                                                    <div class="progress-bar bg-info" 
+                                                         role="progressbar" 
+                                                         style="width: {{ porcentaje }}%"
+                                                         aria-valuenow="{{ porcentaje }}" 
+                                                         aria-valuemin="0" 
+                                                         aria-valuemax="100">
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">No hay datos de categorías disponibles</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card shadow h-100">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Préstamos por Mes</h5>
+                </div>
+                <div class="card-body">
+                    {% if prestamos_mes %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Mes</th>
+                                        <th>Préstamos</th>
+                                        <th>Tendencia</th>
+                                        <th>Gráfica</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for prestamo in prestamos_mes %}
+                                        <tr>
+                                            <td>
+                                                <i class="fas fa-calendar me-2"></i>
+                                                {{ prestamo.mes }}
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-success">{{ prestamo.cantidad }}</span>
+                                            </td>
+                                            <td>
+                                                {% if loop.index > 1 %}
+                                                    {% set prev = prestamos_mes[loop.index0 - 1].cantidad %}
+                                                    {% set diff = prestamo.cantidad - prev %}
+                                                    {% if diff > 0 %}
+                                                        <span class="text-success">
+                                                            <i class="fas fa-arrow-up"></i> +{{ diff }}
+                                                        </span>
+                                                    {% elif diff < 0 %}
+                                                        <span class="text-danger">
+                                                            <i class="fas fa-arrow-down"></i> {{ diff }}
+                                                        </span>
+                                                    {% else %}
+                                                        <span class="text-muted">Sin cambio</span>
+                                                    {% endif %}
+                                                {% else %}
+                                                    <span class="text-muted">-</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% set max_prestamos = prestamos_mes|map(attribute='cantidad')|max %}
+                                                {% set width = (prestamo.cantidad * 100 / max_prestamos)|round(0) %}
+                                                <div class="progress" style="height: 10px;">
+                                                    <div class="progress-bar bg-success" 
+                                                         role="progressbar" 
+                                                         style="width: {{ width }}%"
+                                                         aria-valuenow="{{ prestamo.cantidad }}" 
+                                                         aria-valuemin="0" 
+                                                         aria-valuemax="{{ max_prestamos }}">
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-exchange-alt fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">No hay datos de préstamos por mes</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reportes de Alumnos y Reservas -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card shadow h-100">
+                <div class="card-header bg-warning text-white">
+                    <h5 class="mb-0"><i class="fas fa-users me-2"></i>Alumnos por Grupo</h5>
+                </div>
+                <div class="card-body">
+                    {% if grupos %}
+                        <div class="row">
+                            {% for grupo in grupos %}
+                                <div class="col-md-6 mb-3">
+                                    <div class="card border">
+                                        <div class="card-body">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <h6 class="mb-1">{{ grupo.grupo or 'Sin grupo' }}</h6>
+                                                    <p class="text-muted mb-0">{{ grupo.cantidad }} alumnos</p>
+                                                </div>
+                                                <div class="avatar-group">
+                                                    <span class="badge bg-warning rounded-pill p-2">
+                                                        {% if total_alumnos > 0 %}
+                                                            {{ (grupo.cantidad * 100 / total_alumnos)|round(1) }}%
+                                                        {% else %}
+                                                            0%
+                                                        {% endif %}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div class="progress mt-2" style="height: 5px;">
+                                                <div class="progress-bar bg-warning" 
+                                                     role="progressbar" 
+                                                     style="width: {% if total_alumnos > 0 %}{{ (grupo.cantidad * 100 / total_alumnos)|round(1) }}%{% else %}0%{% endif %}"
+                                                     aria-valuenow="{{ grupo.cantidad }}" 
+                                                     aria-valuemin="0" 
+                                                     aria-valuemax="{{ total_alumnos }}">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-user-graduate fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">No hay datos de alumnos por grupo</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card shadow h-100">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Reservas por Mes</h5>
+                </div>
+                <div class="card-body">
+                    {% if reservas_mes %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Mes</th>
+                                        <th>Reservas</th>
+                                        <th>Horas Totales</th>
+                                        <th>Ocupación</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for reserva in reservas_mes %}
+                                        {% set horas_estimadas = reserva.cantidad * 1.5 %}
+                                        <tr>
+                                            <td>
+                                                <i class="fas fa-calendar me-2"></i>
+                                                {{ reserva.mes }}
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-danger">{{ reserva.cantidad }}</span>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-info">{{ horas_estimadas|int }}h</span>
+                                            </td>
+                                            <td>
+                                                {% set ocupacion = (reserva.cantidad * 100 / 30)|round(1) %}
+                                                <div class="d-flex align-items-center">
+                                                    <div class="progress flex-grow-1 me-2" style="height: 10px;">
+                                                        <div class="progress-bar bg-danger" 
+                                                             role="progressbar" 
+                                                             style="width: {{ ocupacion }}%"
+                                                             aria-valuenow="{{ ocupacion }}" 
+                                                             aria-valuemin="0" 
+                                                             aria-valuemax="100">
+                                                        </div>
+                                                    </div>
+                                                    <small>{{ ocupacion }}%</small>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">No hay datos de reservas por mes</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráficos de Tendencia -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0"><i class="fas fa-chart-area me-2"></i>Tendencias del Sistema</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="card border">
+                                <div class="card-body text-center">
+                                    <h6 class="card-title">Ítems Activos</h6>
+                                    <div class="display-4 text-primary">{{ total_items }}</div>
+                                    <div class="progress mt-3" style="height: 6px;">
+                                        <div class="progress-bar bg-primary" style="width: 85%"></div>
+                                    </div>
+                                    <small class="text-muted">85% de capacidad</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card border">
+                                <div class="card-body text-center">
+                                    <h6 class="card-title">Ocupación Laboratorio</h6>
+                                    {% set ocupacion_lab = (total_reservas * 100 / 30)|round(1) %}
+                                    <div class="display-4 text-success">{{ ocupacion_lab }}%</div>
+                                    <div class="progress mt-3" style="height: 6px;">
+                                        <div class="progress-bar bg-success" style="width: {{ ocupacion_lab }}%"></div>
+                                    </div>
+                                    <small class="text-muted">{{ total_reservas }} sesiones este mes</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card border">
+                                <div class="card-body text-center">
+                                    <h6 class="card-title">Eficiencia de Devolución</h6>
+                                    {% if total_prestamos > 0 %}
+                                        {% set eficiencia = ((total_prestamos - total_deudas) * 100 / total_prestamos)|round(1) %}
+                                    {% else %}
+                                        {% set eficiencia = 100 %}
+                                    {% endif %}
+                                    <div class="display-4 text-warning">{{ eficiencia }}%</div>
+                                    <div class="progress mt-3" style="height: 6px;">
+                                        <div class="progress-bar bg-warning" style="width: {{ eficiencia }}%"></div>
+                                    </div>
+                                    <small class="text-muted">{{ total_deudas }} deudas pendientes</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Tabla de métricas -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="table-responsive">
+                                <table class="table table-bordered">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Métrica</th>
+                                            <th>Valor Actual</th>
+                                            <th>Objetivo</th>
+                                            <th>Progreso</th>
+                                            <th>Estado</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>Items en inventario</td>
+                                            <td>{{ total_items }}</td>
+                                            <td>150</td>
+                                            <td>
+                                                <div class="progress" style="height: 10px;">
+                                                    {% set progreso_items = (total_items * 100 / 150)|round(1) %}
+                                                    <div class="progress-bar bg-primary" style="width: {{ progreso_items }}%"></div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                {% if progreso_items >= 80 %}
+                                                    <span class="badge bg-success">Excelente</span>
+                                                {% elif progreso_items >= 50 %}
+                                                    <span class="badge bg-warning">Regular</span>
+                                                {% else %}
+                                                    <span class="badge bg-danger">Bajo</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>Alumnos registrados</td>
+                                            <td>{{ total_alumnos }}</td>
+                                            <td>200</td>
+                                            <td>
+                                                <div class="progress" style="height: 10px;">
+                                                    {% set progreso_alumnos = (total_alumnos * 100 / 200)|round(1) %}
+                                                    <div class="progress-bar bg-info" style="width: {{ progreso_alumnos }}%"></div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                {% if progreso_alumnos >= 80 %}
+                                                    <span class="badge bg-success">Excelente</span>
+                                                {% elif progreso_alumnos >= 50 %}
+                                                    <span class="badge bg-warning">Regular</span>
+                                                {% else %}
+                                                    <span class="badge bg-danger">Bajo</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>Sesiones reservadas</td>
+                                            <td>{{ total_reservas }}</td>
+                                            <td>50</td>
+                                            <td>
+                                                <div class="progress" style="height: 10px;">
+                                                    {% set progreso_reservas = (total_reservas * 100 / 50)|round(1) %}
+                                                    {% if progreso_reservas > 100 %}
+                                                        {% set ancho_barra = 100 %}
+                                                    {% else %}
+                                                        {% set ancho_barra = progreso_reservas %}
+                                                    {% endif %}
+                                                    <div class="progress-bar bg-success" style="width: {{ ancho_barra }}%"></div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                {% if progreso_reservas >= 100 %}
+                                                    <span class="badge bg-success">Superado</span>
+                                                {% elif progreso_reservas >= 80 %}
+                                                    <span class="badge bg-success">Excelente</span>
+                                                {% elif progreso_reservas >= 50 %}
+                                                    <span class="badge bg-warning">Regular</span>
+                                                {% else %}
+                                                    <span class="badge bg-danger">Bajo</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>Deudas pendientes</td>
+                                            <td>{{ total_deudas }}</td>
+                                            <td>0</td>
+                                            <td>
+                                                <div class="progress" style="height: 10px;">
+                                                    {% if total_deudas > 0 %}
+                                                        {% set progreso_deudas = 100 %}
+                                                    {% else %}
+                                                        {% set progreso_deudas = 0 %}
+                                                    {% endif %}
+                                                    <div class="progress-bar bg-danger" style="width: {{ progreso_deudas }}%"></div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                {% if total_deudas == 0 %}
+                                                    <span class="badge bg-success">Excelente</span>
+                                                {% elif total_deudas <= 5 %}
+                                                    <span class="badge bg-warning">Atención</span>
+                                                {% else %}
+                                                    <span class="badge bg-danger">Crítico</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reporte Detallado -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0"><i class="fas fa-file-alt me-2"></i>Reporte Detallado</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-check-circle text-success me-2"></i>Fortalezas</h6>
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item">
+                                    <i class="fas fa-check text-success me-2"></i>
+                                    Alto registro de alumnos: {{ total_alumnos }} registrados
+                                </li>
+                                <li class="list-group-item">
+                                    <i class="fas fa-check text-success me-2"></i>
+                                    Buen nivel de préstamos: {{ total_prestamos }} realizados
+                                </li>
+                                <li class="list-group-item">
+                                    <i class="fas fa-check text-success me-2"></i>
+                                    Inventario diversificado: {{ categorias|length }} categorías
+                                </li>
+                                {% if total_reservas > 20 %}
+                                <li class="list-group-item">
+                                    <i class="fas fa-check text-success me-2"></i>
+                                    Alta ocupación del laboratorio
+                                </li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-exclamation-triangle text-warning me-2"></i>Áreas de Mejora</h6>
+                            <ul class="list-group list-group-flush">
+                                {% if total_deudas > 0 %}
+                                <li class="list-group-item">
+                                    <i class="fas fa-exclamation text-warning me-2"></i>
+                                    {{ total_deudas }} deuda(s) pendiente(s) por cobrar
+                                </li>
+                                {% endif %}
+                                {% if total_items < 100 %}
+                                <li class="list-group-item">
+                                    <i class="fas fa-exclamation text-warning me-2"></i>
+                                    Inventario por debajo del objetivo ({{ total_items }}/150)
+                                </li>
+                                {% endif %}
+                                {% if total_reservas < 15 %}
+                                <li class="list-group-item">
+                                    <i class="fas fa-exclamation text-warning me-2"></i>
+                                    Baja ocupación del laboratorio este mes
+                                </li>
+                                {% endif %}
+                                {% if categorias|length < 5 %}
+                                <li class="list-group-item">
+                                    <i class="fas fa-exclamation text-warning me-2"></i>
+                                    Pocas categorías en inventario ({{ categorias|length }})
+                                </li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <!-- Recomendaciones -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="card border-primary">
+                                <div class="card-header bg-primary text-white">
+                                    <h6 class="mb-0"><i class="fas fa-lightbulb me-2"></i>Recomendaciones</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <div class="card border-0 shadow-sm h-100">
+                                                <div class="card-body">
+                                                    <h6><i class="fas fa-boxes text-primary me-2"></i>Inventario</h6>
+                                                    <ul class="mb-0">
+                                                        <li>Actualizar inventario regularmente</li>
+                                                        <li>Crear más categorías específicas</li>
+                                                        <li>Revisar niveles de stock</li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="card border-0 shadow-sm h-100">
+                                                <div class="card-body">
+                                                    <h6><i class="fas fa-users text-success me-2"></i>Alumnos</h6>
+                                                    <ul class="mb-0">
+                                                        <li>Promover registro de nuevos grupos</li>
+                                                        <li>Actualizar datos de contacto</li>
+                                                        <li>Capacitar en uso responsable</li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="card border-0 shadow-sm h-100">
+                                                <div class="card-body">
+                                                    <h6><i class="fas fa-calendar text-warning me-2"></i>Reservas</h6>
+                                                    <ul class="mb-0">
+                                                        <li>Promover horarios disponibles</li>
+                                                        <li>Optimizar uso del laboratorio</li>
+                                                        <li>Crear paquetes de sesiones</li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Footer del reporte -->
+                <div class="card-footer text-center">
+                    <small class="text-muted">
+                        Reporte generado el {{ today }} | 
+                        Sistema XONILAB - by XONIDU |
+                        Responsable: {{ session.nombre }}
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Estilos específicos para reportes */
+.stat-card {
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+}
+
+.progress {
+    border-radius: 10px;
+}
+
+.progress-bar {
+    border-radius: 10px;
+}
+
+/* Animaciones */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.card {
+    animation: fadeIn 0.5s ease-out;
+}
+
+/* Estilos para impresión */
+@media print {
+    .btn, .navbar, .sidebar, .breadcrumb {
+        display: none !important;
+    }
+    
+    .card {
+        border: 1px solid #000 !important;
+        box-shadow: none !important;
+    }
+    
+    .card-header {
+        background-color: #f8f9fa !important;
+        color: #000 !important;
+        border-bottom: 2px solid #000 !important;
+    }
+    
+    .stat-card {
+        break-inside: avoid;
+        border: 1px solid #000 !important;
+    }
+    
+    a[href]:after {
+        content: " (" attr(href) ")";
+    }
+    
+    .main-content {
+        margin-left: 0 !important;
+        width: 100% !important;
+    }
+}
+
+/* Personalización de gráficos */
+.metric-card {
+    border-left: 4px solid;
+    transition: all 0.3s;
+}
+
+.metric-card:hover {
+    transform: scale(1.02);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .stat-card {
+        margin-bottom: 15px;
+    }
+    
+    .display-4 {
+        font-size: 2.5rem;
+    }
+    
+    .table-responsive {
+        font-size: 0.85rem;
+    }
+}
+</style>
+
+<script>
+// Función para exportar a PDF (simulación)
+function exportToPDF() {
+    // En un entorno real, esto enviaría una solicitud al servidor para generar un PDF
+    // Por ahora, mostramos un mensaje y permitimos imprimir
+    alert('Función de exportación a PDF - Esta funcionalidad requiere configuración adicional en el servidor.\n\nPor ahora, use la función de impresión (Ctrl+P) y seleccione "Guardar como PDF" en las opciones de impresión.');
+    
+    // También podemos abrir la ventana de impresión que permite guardar como PDF
+    // window.print();
+}
+
+// Filtros de reporte
+document.getElementById('filtrosReporte').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const tipoReporte = document.getElementById('tipoReporte').value;
+    const periodo = document.getElementById('periodo').value;
+    
+    // Mostrar mensaje de carga
+    const toast = document.createElement('div');
+    toast.className = 'toast align-items-center text-white bg-primary border-0 position-fixed top-0 start-50 translate-middle-x mt-5';
+    toast.style.zIndex = '9999';
+    toast.innerHTML = `
+        <div class="d-flex">
+            <div class="toast-body">
+                <i class="fas fa-sync-alt fa-spin me-2"></i>
+                Generando reporte ${tipoReporte} para ${periodo}...
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    `;
+    document.body.appendChild(toast);
+    
+    // Inicializar toast de Bootstrap
+    const bsToast = new bootstrap.Toast(toast);
+    bsToast.show();
+    
+    // Simular carga de datos (en un sistema real, aquí se haría una petición AJAX)
+    setTimeout(() => {
+        bsToast.hide();
+        
+        // Mostrar notificación de éxito
+        const successToast = document.createElement('div');
+        successToast.className = 'toast align-items-center text-white bg-success border-0 position-fixed top-0 start-50 translate-middle-x mt-5';
+        successToast.style.zIndex = '9999';
+        successToast.innerHTML = `
+            <div class="d-flex">
+                <div class="toast-body">
+                    <i class="fas fa-check-circle me-2"></i>
+                    Reporte actualizado correctamente
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        `;
+        document.body.appendChild(successToast);
+        
+        const successBsToast = new bootstrap.Toast(successToast);
+        successBsToast.show();
+        
+        // Remover toasts después de un tiempo
+        setTimeout(() => {
+            toast.remove();
+            successToast.remove();
+        }, 3000);
+        
+    }, 1500);
+});
+
+// Manejo del período personalizado
+document.getElementById('periodo').addEventListener('change', function() {
+    const fechaDesde = document.getElementById('fechaDesde');
+    const fechaHasta = document.getElementById('fechaHasta');
+    
+    if (this.value === 'personalizado') {
+        fechaDesde.disabled = false;
+        fechaHasta.disabled = false;
+    } else {
+        fechaDesde.disabled = true;
+        fechaHasta.disabled = true;
+        
+        // Establecer fechas según el período seleccionado
+        const hoy = new Date();
+        let fechaInicio = new Date();
+        
+        switch(this.value) {
+            case 'hoy':
+                fechaDesde.value = fechaHasta.value = hoy.toISOString().split('T')[0];
+                break;
+            case 'semana':
+                fechaInicio.setDate(hoy.getDate() - 7);
+                fechaDesde.value = fechaInicio.toISOString().split('T')[0];
+                fechaHasta.value = hoy.toISOString().split('T')[0];
+                break;
+            case 'mes':
+                fechaInicio.setMonth(hoy.getMonth() - 1);
+                fechaDesde.value = fechaInicio.toISOString().split('T')[0];
+                fechaHasta.value = hoy.toISOString().split('T')[0];
+                break;
+            case 'trimestre':
+                fechaInicio.setMonth(hoy.getMonth() - 3);
+                fechaDesde.value = fechaInicio.toISOString().split('T')[0];
+                fechaHasta.value = hoy.toISOString().split('T')[0];
+                break;
+            case 'anio':
+                fechaInicio.setFullYear(hoy.getFullYear() - 1);
+                fechaDesde.value = fechaInicio.toISOString().split('T')[0];
+                fechaHasta.value = hoy.toISOString().split('T')[0];
+                break;
+        }
+    }
+});
+
+// Inicializar período al cargar la página
+document.addEventListener('DOMContentLoaded', function() {
+    // Simular cambio para establecer fechas iniciales
+    document.getElementById('periodo').dispatchEvent(new Event('change'));
+    
+    // Agregar efectos de animación a las tarjetas
+    const cards = document.querySelectorAll('.card');
+    cards.forEach((card, index) => {
+        card.style.animationDelay = `${index * 0.1}s`;
+    });
+    
+    // Configurar tooltips
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+
+// Función para generar gráficos simples (usando caracteres ASCII como fallback)
+function generateSimpleChart(data, maxWidth = 50) {
+    const maxValue = Math.max(...data.map(d => d.value));
+    return data.map(item => {
+        const width = Math.round((item.value / maxValue) * maxWidth);
+        const bar = '█'.repeat(width) + '░'.repeat(maxWidth - width);
+        return `${item.label.padEnd(20)} ${bar} ${item.value}`;
+    }).join('\n');
+}
+
+// Ejemplo de uso (para debugging en consola)
+console.log('📊 Reporte del Sistema XONILAB');
+console.log('===============================');
+console.log(`Fecha: ${new Date().toLocaleDateString('es-ES')}`);
+console.log(`Items en inventario: {{ total_items }}`);
+console.log(`Préstamos totales: {{ total_prestamos }}`);
+console.log(`Alumnos registrados: {{ total_alumnos }}`);
+console.log(`Reservas este mes: {{ total_reservas }}`);
+console.log(`Deudas pendientes: {{ total_deudas }}`);
+</script>
+{% endblock %}

@@ -1,0 +1,233 @@
+{% extends "base.html" %}
+
+{% block title %}Préstamos - XONILAB{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Cabecera -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="page-title">Gestión de Préstamos</h1>
+            <p class="page-subtitle">Control de préstamos y devoluciones de materiales</p>
+        </div>
+    </div>
+
+    <!-- Estadísticas -->
+    <div class="row mb-6">
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="stat-card">
+                <i class="fas fa-exchange-alt"></i>
+                <div class="stat-number">{{ total_prestamos }}</div>
+                <div class="stat-label">Total de Préstamos</div>
+            </div>
+        </div>
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="stat-card">
+                <i class="fas fa-clock"></i>
+                <div class="stat-number">{{ prestamos_activos }}</div>
+                <div class="stat-label">Préstamos Activos</div>
+            </div>
+        </div>
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="stat-card">
+                <i class="fas fa-check-circle"></i>
+                <div class="stat-number">{{ prestamos_devueltos }}</div>
+                <div class="stat-label">Devueltos</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros y búsqueda -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="filtros-container">
+                <form method="GET" action="{{ url_for('prestamos') }}" class="row g-3">
+                    <div class="col-md-5">
+                        <label class="form-label">Buscar</label>
+                        <input type="text" class="form-control" name="buscar" value="{{ buscar }}" placeholder="Alumno, ítem o número de cuenta...">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Estado</label>
+                        <select class="form-select" name="estado">
+                            <option value="">Todos los estados</option>
+                            <option value="prestado" {% if estado == 'prestado' %}selected{% endif %}>Prestado</option>
+                            <option value="devuelto" {% if estado == 'devuelto' %}selected{% endif %}>Devuelto</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-search me-1"></i> Filtrar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Botón para nuevo préstamo -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalNuevoPrestamo">
+                <i class="fas fa-plus me-1"></i> Nuevo Préstamo
+            </button>
+        </div>
+    </div>
+
+    <!-- Tabla de préstamos -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="fas fa-list me-2"></i>Historial de Préstamos</span>
+                    <span class="badge bg-primary">{{ prestamos|length }} registros</span>
+                </div>
+                <div class="card-body">
+                    {% if prestamos %}
+                        <div class="table-responsive">
+                            <table class="table table-hover datatable">
+                                <thead>
+                                    <tr>
+                                        <th>Alumno</th>
+                                        <th>Ítem</th>
+                                        <th>Fecha Préstamo</th>
+                                        <th>Fecha Devolución</th>
+                                        <th>Cantidad</th>
+                                        <th>Estado</th>
+                                        <th>Observaciones</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for prestamo in prestamos %}
+                                    <tr>
+                                        <td>
+                                            <strong>{{ prestamo.nombre_alumno }}</strong><br>
+                                            <small class="text-muted">{{ prestamo.num_cuenta }}</small>
+                                        </td>
+                                        <td>{{ prestamo.nombre_item }}</td>
+                                        <td>{{ prestamo.fecha_prestamo[:16] }}</td>
+                                        <td>
+                                            {% if prestamo.fecha_devolucion %}
+                                                {{ prestamo.fecha_devolucion[:16] }}
+                                            {% else %}
+                                                <span class="text-muted">Pendiente</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-secondary">{{ prestamo.cantidad }}</span>
+                                        </td>
+                                        <td>
+                                            {% if prestamo.estado == 'prestado' %}
+                                                <span class="badge bg-warning">Prestado</span>
+                                            {% else %}
+                                                <span class="badge bg-success">Devuelto</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if prestamo.observaciones %}
+                                                {{ prestamo.observaciones[:30] }}{% if prestamo.observaciones|length > 30 %}...{% endif %}
+                                            {% else %}
+                                                <span class="text-muted">Sin observaciones</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if prestamo.estado == 'prestado' %}
+                                                <a href="{{ url_for('devolver_prestamo', id_prestamo=prestamo.id_prestamo) }}" 
+                                                   class="btn btn-sm btn-success"
+                                                   onclick="return confirm('¿Registrar devolución de este préstamo?')">
+                                                    <i class="fas fa-check me-1"></i> Devolver
+                                                </a>
+                                            {% else %}
+                                                <span class="text-muted">Devuelto</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-exchange-alt fa-4x text-muted mb-3"></i>
+                            <h5 class="text-muted">No hay préstamos registrados</h5>
+                            <p class="text-muted">Comienza registrando un nuevo préstamo</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para nuevo préstamo -->
+<div class="modal fade" id="modalNuevoPrestamo" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form action="{{ url_for('nuevo_prestamo') }}" method="POST">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-plus-circle me-2"></i>Nuevo Préstamo
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Alumno *</label>
+                            <select class="form-select" name="alumno" required>
+                                <option value="">Seleccionar alumno...</option>
+                                {% for alumno in alumnos %}
+                                    <option value="{{ alumno.id_alumno }}">{{ alumno.nombre }} - {{ alumno.num_cuenta }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Ítem *</label>
+                            <select class="form-select" name="item" required>
+                                <option value="">Seleccionar ítem...</option>
+                                {% for item in items %}
+                                    <option value="{{ item.id_item }}">{{ item.nombre }} (Disponible: {{ item.cantidad }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Cantidad *</label>
+                            <input type="number" class="form-control" name="cantidad" required min="1" value="1">
+                        </div>
+                        <div class="col-md-8 mb-3">
+                            <label class="form-label">Fecha de Devolución *</label>
+                            <input type="date" class="form-control" name="fecha_devolucion" required>
+                        </div>
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label">Observaciones</label>
+                            <textarea class="form-control" name="observaciones" rows="3" placeholder="Observaciones sobre el préstamo..."></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">Registrar Préstamo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Configurar fecha mínima para devolución (hoy)
+    const today = new Date().toISOString().split('T')[0];
+    document.querySelector('input[name="fecha_devolucion"]').min = today;
+    
+    // Configurar DataTables
+    $('.datatable').DataTable({
+        language: {
+            url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/es-ES.json'
+        },
+        pageLength: 25,
+        responsive: true,
+        order: [[2, 'desc']] // Ordenar por fecha de préstamo descendente
+    });
+});
+</script>
+{% endblock %}

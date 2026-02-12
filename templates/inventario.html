@@ -1,0 +1,346 @@
+{% extends "base.html" %}
+
+{% block title %}Inventario - XONILAB{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Cabecera -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="page-title">Gestión de Inventario</h1>
+            <p class="page-subtitle">Administra los items, materiales y equipos del laboratorio</p>
+        </div>
+    </div>
+
+    <!-- Estadísticas -->
+    <div class="row mb-6">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="stat-card">
+                <i class="fas fa-boxes"></i>
+                <div class="stat-number">{{ total_items }}</div>
+                <div class="stat-label">Total de Items</div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="stat-card">
+                <i class="fas fa-check-circle"></i>
+                <div class="stat-number">{{ items_disponibles }}</div>
+                <div class="stat-label">Disponibles</div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="stat-card">
+                <i class="fas fa-times-circle"></i>
+                <div class="stat-number">{{ items_agotados }}</div>
+                <div class="stat-label">Agotados</div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="stat-card">
+                <i class="fas fa-exclamation-triangle"></i>
+                <div class="stat-number">{{ items_bajo_stock }}</div>
+                <div class="stat-label">Bajo Stock</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros y búsqueda -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="filtros-container">
+                <form method="GET" action="{{ url_for('inventario') }}" class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Buscar</label>
+                        <input type="text" class="form-control" name="buscar" value="{{ buscar }}" placeholder="Nombre, código o descripción...">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Categoría</label>
+                        <select class="form-select" name="categoria">
+                            <option value="">Todas las categorías</option>
+                            {% for cat in categorias %}
+                                <option value="{{ cat }}" {% if categoria == cat %}selected{% endif %}>{{ cat }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Estado</label>
+                        <select class="form-select" name="estado">
+                            <option value="">Todos</option>
+                            <option value="disponible" {% if estado == 'disponible' %}selected{% endif %}>Disponible</option>
+                            <option value="agotado" {% if estado == 'agotado' %}selected{% endif %}>Agotado</option>
+                            <option value="bajo_stock" {% if estado == 'bajo_stock' %}selected{% endif %}>Bajo Stock</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-search me-1"></i> Filtrar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Botón para agregar nuevo ítem -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalAgregarItem">
+                <i class="fas fa-plus me-1"></i> Agregar Nuevo Ítem
+            </button>
+        </div>
+    </div>
+
+    <!-- Tabla de inventario -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="fas fa-list me-2"></i>Lista de Inventario</span>
+                    <span class="badge bg-primary">{{ items|length }} items</span>
+                </div>
+                <div class="card-body">
+                    {% if items %}
+                        <div class="table-responsive">
+                            <table class="table table-hover datatable">
+                                <thead>
+                                    <tr>
+                                        <th>Código</th>
+                                        <th>Nombre</th>
+                                        <th>Categoría</th>
+                                        <th>Descripción</th>
+                                        <th>Cantidad</th>
+                                        <th>Ubicación</th>
+                                        <th>Estado</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in items %}
+                                    <tr>
+                                        <td>
+                                            <span class="badge bg-secondary">{{ item.codigo }}</span>
+                                        </td>
+                                        <td>
+                                            <strong>{{ item.nombre }}</strong><br>
+                                            <small class="text-muted">{{ item.unidad }}</small>
+                                        </td>
+                                        <td>{{ item.categoria }}</td>
+                                        <td>{{ item.descripcion[:50] }}{% if item.descripcion|length > 50 %}...{% endif %}</td>
+                                        <td>
+                                            {% if item.cantidad|int <= 5 %}
+                                                <span class="badge bg-warning">{{ item.cantidad }}</span>
+                                            {% elif item.cantidad|int == 0 %}
+                                                <span class="badge bg-danger">{{ item.cantidad }}</span>
+                                            {% else %}
+                                                <span class="badge bg-success">{{ item.cantidad }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ item.ubicacion }}</td>
+                                        <td>
+                                            {% if item.estado == 'disponible' %}
+                                                <span class="badge bg-success">Disponible</span>
+                                            {% else %}
+                                                <span class="badge bg-danger">Agotado</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <button type="button" class="btn btn-outline-primary" 
+                                                        data-bs-toggle="modal" 
+                                                        data-bs-target="#modalEditarItem"
+                                                        data-id="{{ item.id_item }}"
+                                                        data-nombre="{{ item.nombre }}"
+                                                        data-categoria="{{ item.categoria }}"
+                                                        data-descripcion="{{ item.descripcion }}"
+                                                        data-cantidad="{{ item.cantidad }}"
+                                                        data-unidad="{{ item.unidad }}"
+                                                        data-ubicacion="{{ item.ubicacion }}">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                {% if session.rol == 'admin' %}
+                                                <a href="{{ url_for('eliminar_item', id_item=item.id_item) }}" 
+                                                   class="btn btn-outline-danger"
+                                                   onclick="return confirm('¿Eliminar este ítem?')">
+                                                    <i class="fas fa-trash"></i>
+                                                </a>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-box-open fa-4x text-muted mb-3"></i>
+                            <h5 class="text-muted">No hay items en el inventario</h5>
+                            <p class="text-muted">Comienza agregando nuevos items al sistema</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para agregar ítem -->
+<div class="modal fade" id="modalAgregarItem" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form action="{{ url_for('agregar_item') }}" method="POST">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-plus-circle me-2"></i>Agregar Nuevo Ítem
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Nombre *</label>
+                            <input type="text" class="form-control" name="nombre" required placeholder="Ej: Tubo de ensayo">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Categoría *</label>
+                            <input type="text" class="form-control" name="categoria" required placeholder="Ej: Vidriería">
+                        </div>
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label">Descripción</label>
+                            <textarea class="form-control" name="descripcion" rows="2" placeholder="Descripción detallada del ítem"></textarea>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Cantidad *</label>
+                            <input type="number" class="form-control" name="cantidad" required min="0" value="0">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Unidad</label>
+                            <select class="form-select" name="unidad">
+                                <option value="pzas">Piezas</option>
+                                <option value="ml">Mililitros</option>
+                                <option value="g">Gramos</option>
+                                <option value="kg">Kilogramos</option>
+                                <option value="l">Litros</option>
+                                <option value="unidad">Unidad</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Ubicación</label>
+                            <input type="text" class="form-control" name="ubicacion" placeholder="Ej: Estante A-1">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">Guardar Ítem</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para editar ítem -->
+<div class="modal fade" id="modalEditarItem" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form action="#" method="POST" id="formEditarItem">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-edit me-2"></i>Editar Ítem
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <input type="hidden" name="id_item" id="editIdItem">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Nombre *</label>
+                            <input type="text" class="form-control" name="nombre" id="editNombre" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Categoría *</label>
+                            <input type="text" class="form-control" name="categoria" id="editCategoria" required>
+                        </div>
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label">Descripción</label>
+                            <textarea class="form-control" name="descripcion" id="editDescripcion" rows="2"></textarea>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Cantidad *</label>
+                            <input type="number" class="form-control" name="cantidad" id="editCantidad" required min="0">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Unidad</label>
+                            <select class="form-select" name="unidad" id="editUnidad">
+                                <option value="pzas">Piezas</option>
+                                <option value="ml">Mililitros</option>
+                                <option value="g">Gramos</option>
+                                <option value="kg">Kilogramos</option>
+                                <option value="l">Litros</option>
+                                <option value="unidad">Unidad</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Ubicación</label>
+                            <input type="text" class="form-control" name="ubicacion" id="editUbicacion">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Actualizar Ítem</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Estilos específicos para inventario */
+.datatable {
+    width: 100% !important;
+}
+</style>
+
+<script>
+// Script para el modal de edición
+document.addEventListener('DOMContentLoaded', function() {
+    const modalEditar = document.getElementById('modalEditarItem');
+    
+    modalEditar.addEventListener('show.bs.modal', function(event) {
+        const button = event.relatedTarget;
+        
+        // Obtener datos del botón
+        const id = button.getAttribute('data-id');
+        const nombre = button.getAttribute('data-nombre');
+        const categoria = button.getAttribute('data-categoria');
+        const descripcion = button.getAttribute('data-descripcion');
+        const cantidad = button.getAttribute('data-cantidad');
+        const unidad = button.getAttribute('data-unidad');
+        const ubicacion = button.getAttribute('data-ubicacion');
+        
+        // Actualizar formulario
+        document.getElementById('editIdItem').value = id;
+        document.getElementById('editNombre').value = nombre;
+        document.getElementById('editCategoria').value = categoria;
+        document.getElementById('editDescripcion').value = descripcion;
+        document.getElementById('editCantidad').value = cantidad;
+        document.getElementById('editUbicacion').value = ubicacion;
+        document.getElementById('editUnidad').value = unidad;
+        
+        // Actualizar acción del formulario
+        document.getElementById('formEditarItem').action = `/inventario/editar/${id}`;
+    });
+    
+    // Configurar DataTables
+    $('.datatable').DataTable({
+        language: {
+            url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/es-ES.json'
+        },
+        pageLength: 25,
+        responsive: true,
+        order: [[0, 'asc']]
+    });
+});
+</script>
+{% endblock %}
