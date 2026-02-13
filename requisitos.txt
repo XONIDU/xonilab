@@ -7,25 +7,25 @@
 sudo pacman -S python-pip
 pip install flask --break-system-packages
 #Ejecucion:
-python app.py
+python start.py
 
 #Ubuntu y derivados
 sudo apt update
 sudo apt install python3 python3-pip -y
 pip3 install flask
 #Ejecucion:
-python3 app.py
+python3 start.py
 
 #Windows
 pip install flask
 #Ejecucion:
-python app.py
+python start.py
 
 #macOS
 brew install python3
 pip3 install flask
 #Ejecucion:
-python3 app.py
+python3 start.py
 
 #Credenciales por defecto:
 #Usuario: XONILAB
