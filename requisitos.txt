@@ -1,11 +1,14 @@
 #Somos XONINDU
 
+#Darian Alberto Camacho Salas
+
 #XONILAB - Sistema de Gestion de Laboratorio
 #Dependencias: flask
 
 #Arch Linux
 sudo pacman -S python-pip
 pip install flask --break-system-packages
+
 #Ejecucion:
 python start.py
 
@@ -33,11 +36,6 @@ python3 start.py
 
 #Puerto por defecto: 5005
 #URL: http://localhost:5005
-
-#Opciones de entorno:
-#export PORT=5500  (cambiar puerto)
-#export HOST=127.0.0.1  (cambiar host)
-#export DEBUG=False  (modo produccion)
 
 #Desarrollado por XONIDU - Darian Alberto Camacho Salas
 #Version 2.0 - 2025
