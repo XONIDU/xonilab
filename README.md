@@ -13,14 +13,14 @@ Sistema web para gestionar laboratorios educativos. Permite administrar inventar
 
 - Python 3.8+
 - Flask
-- qrcode
+- qrcode[pil]
 - pillow
 
 ## 🚀 Instalación
 
 ```bash
 # Instalar dependencias
-pip install flask qrcode pillow
+pip install flask qrcode[pil] pillow
 
 # Ejecutar
 python start.py
@@ -48,6 +48,9 @@ Contraseña: laboratorio
 - 📋 Préstamos a alumnos
 - 👥 Registro de alumnos
 - 💰 Deudas por daños
+- 📅 Calendario de reservas
+- 📊 Reportes
+- 💾 Backups
 
 ## ⚙️ Configuración
 
@@ -55,5 +58,5 @@ Puerto por defecto: **5005**
 
 ---
 
-*Desarrollado por XONIDU - Versión 3.0 - 2026*
+*Desarrollado por XONIDU - Versión 3.0 - 2025*
 ```
