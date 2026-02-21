@@ -56,4 +56,4 @@ Puerto por defecto: **5005**
 ---
 
 *Desarrollado por XONIDU - Versión 3.0 - 2026*
-```
+
