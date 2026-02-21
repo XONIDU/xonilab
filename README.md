@@ -1,4 +1,3 @@
-```markdown
 # XONILAB - Sistema de Gestión de Laboratorio
 
 **Creador:** Darian Alberto Camacho Salas
@@ -13,7 +12,7 @@ Sistema web para gestionar laboratorios educativos. Permite administrar inventar
 
 - Python 3.8+
 - Flask
-- qrcode[pil]
+- qrcode
 - pillow
 
 ## 🚀 Instalación
