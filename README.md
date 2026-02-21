@@ -1,30 +1,59 @@
-# 📄 XONILAB - Sistema de Gestión de Laboratorio
+```markdown
+# XONILAB - Sistema de Gestión de Laboratorio
 
-Creador: Darian Alberto Camacho Salas
+**Creador:** Darian Alberto Camacho Salas
 
-**Advertencia:** Este sistema está diseñado **únicamente para fines educativos y de gestión interna** de laboratorios. No debe ser utilizado para actividades malintencionadas o sin la debida autorización. El autor no se hace responsable del uso indebido de esta herramienta.
+> ⚠️ **Advertencia:** Sistema para fines educativos y gestión interna de laboratorios.
 
----
+## 🎯 Descripción
 
-## 🎯 ¿Qué es XONILAB?
-
-XONILAB es un sistema web completo para la gestión integral de laboratorios educativos, desarrollado con Flask. Permite administrar:
-
-- **Inventario** de materiales y equipos
-- **Préstamos** de materiales a alumnos
-- **Alumnos** y sus datos académicos
-- **Deudas** por daños o extravíos
-- **Calendario** de reservas de sesiones de práctica
-- **Reportes** y estadísticas
-- **Usuarios** con diferentes niveles de acceso (admin, profesor)
-- **Copias de seguridad** de toda la información
-
-El sistema almacena toda la información en archivos CSV, sin necesidad de base de datos externa, lo que lo hace portable y fácil de implementar.
-
----
+Sistema web para gestionar laboratorios educativos. Permite administrar inventario, préstamos, alumnos, deudas y reservas. Almacena datos en CSV (sin base de datos).
 
 ## ✅ Requisitos
 
-- Python 3.8+ instalado.
-- Dependencias Python listadas en `requirements.txt`.
-- Sistema operativo: Windows, Linux (Arch, Ubuntu, Debian) o macOS.
+- Python 3.8+
+- Flask
+- qrcode
+- pillow
+
+## 🚀 Instalación
+
+```bash
+# Instalar dependencias
+pip install flask qrcode pillow
+
+# Ejecutar
+python start.py
+```
+
+## 🔐 Acceso
+
+```
+URL: http://localhost:5005
+Usuario: XONILAB
+Contraseña: laboratorio
+```
+
+## 📁 Archivos
+
+- `start.py` - Programa principal
+- `data/` - Archivos CSV con datos
+- `templates/` - Vistas HTML
+- `static/qrcodes/` - Códigos QR
+- `backups/` - Copias de seguridad
+
+## ✨ Funciones
+
+- 📦 Inventario con códigos QR
+- 📋 Préstamos a alumnos
+- 👥 Registro de alumnos
+- 💰 Deudas por daños
+
+## ⚙️ Configuración
+
+Puerto por defecto: **5005**
+
+---
+
+*Desarrollado por XONIDU - Versión 3.0 - 2026*
+```
