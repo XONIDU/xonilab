@@ -19,7 +19,7 @@ Sistema web para gestionar laboratorios educativos. Permite administrar inventar
 
 ```bash
 # Instalar dependencias
-pip install flask qrcode[pil] pillow
+pip install flask qrcode pillow
 
 # Ejecutar
 python start.py
