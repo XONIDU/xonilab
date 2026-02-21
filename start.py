@@ -1,10 +1,13 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, session
+from flask import Flask, render_template, request, redirect, url_for, flash, session, send_file
 import os
 import csv
 from datetime import datetime, timedelta
 from functools import wraps
 import calendar
 import locale
+import qrcode
+from io import BytesIO
+import base64
 
 # Configurar locale para español
 try:
@@ -21,7 +24,9 @@ app.secret_key = "xonilab_Darian_Alberto_Camacho_Salas"
 # Configuración
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CSV_FOLDER = os.path.join(BASE_DIR, 'data')
+QR_FOLDER = os.path.join(BASE_DIR, 'static', 'qrcodes')
 os.makedirs(CSV_FOLDER, exist_ok=True)
+os.makedirs(QR_FOLDER, exist_ok=True)
 
 USUARIOS_CSV = os.path.join(CSV_FOLDER, 'usuarios.csv')
 INVENTARIO_CSV = os.path.join(CSV_FOLDER, 'inventario.csv')
@@ -29,6 +34,106 @@ PRESTAMOS_CSV = os.path.join(CSV_FOLDER, 'prestamos.csv')
 ALUMNOS_CSV = os.path.join(CSV_FOLDER, 'alumnos.csv')
 DEUDAS_CSV = os.path.join(CSV_FOLDER, 'deudas.csv')
 RESERVAS_CSV = os.path.join(CSV_FOLDER, 'reservas.csv')
+
+# =============================================
+# FUNCIONES PARA CÓDIGOS QR
+# =============================================
+
+def generar_qr_terminal(url):
+    """Genera un código QR en la terminal usando caracteres Unicode"""
+    try:
+        import qrcode
+        from PIL import Image
+        
+        # Crear código QR
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_L,
+            box_size=2,
+            border=1,
+        )
+        qr.add_data(url)
+        qr.make(fit=True)
+        
+        # Crear imagen del QR
+        qr_image = qr.make_image(fill_color="black", back_color="white")
+        
+        # Convertir a matriz de caracteres para terminal
+        qr_matrix = qr.get_matrix()
+        
+        # Caracteres para la terminal
+        white_square = '  '  # Espacio para blanco
+        black_square = '██'  # Cuadrado lleno para negro
+        
+        # Generar QR para terminal
+        qr_terminal = []
+        border_line = '█' * (len(qr_matrix[0]) * 2 + 4)
+        qr_terminal.append(border_line)
+        
+        for row in qr_matrix:
+            line = '█'
+            for cell in row:
+                line += black_square if cell else white_square
+            line += '█'
+            qr_terminal.append(line)
+        
+        qr_terminal.append(border_line)
+        
+        return qr_terminal
+    except ImportError:
+        return ["⚠️  Instalar qrcode[pil] para ver QR en terminal"]
+
+def generar_qr_item(item_id, codigo, nombre):
+    """Genera código QR para un ítem del inventario"""
+    try:
+        # URL del ítem (puedes cambiarla según tu necesidad)
+        url = f"http://{request.host}/item/{item_id}"
+        
+        # Crear código QR
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_L,
+            box_size=10,
+            border=4,
+        )
+        qr.add_data(f"XONILAB - {codigo}\n{nombre}\n{url}")
+        qr.make(fit=True)
+        
+        # Crear imagen
+        qr_image = qr.make_image(fill_color="black", back_color="white")
+        
+        # Guardar imagen
+        qr_filename = f"qr_{item_id}.png"
+        qr_path = os.path.join(QR_FOLDER, qr_filename)
+        qr_image.save(qr_path)
+        
+        return qr_filename
+    except Exception as e:
+        print(f"Error generando QR para {codigo}: {e}")
+        return None
+
+def obtener_qr_base64(data):
+    """Obtiene código QR en base64 para incrustar en HTML"""
+    try:
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_L,
+            box_size=10,
+            border=4,
+        )
+        qr.add_data(data)
+        qr.make(fit=True)
+        
+        qr_image = qr.make_image(fill_color="black", back_color="white")
+        
+        buffered = BytesIO()
+        qr_image.save(buffered, format="PNG")
+        img_str = base64.b64encode(buffered.getvalue()).decode()
+        
+        return f"data:image/png;base64,{img_str}"
+    except Exception as e:
+        print(f"Error generando QR base64: {e}")
+        return None
 
 # =============================================
 # FUNCIONES AUXILIARES MEJORADAS
@@ -47,7 +152,7 @@ def inicializar_csv():
         with open(INVENTARIO_CSV, 'w', newline='', encoding='utf-8') as f:
             writer = csv.writer(f)
             writer.writerow(['id_item', 'codigo', 'nombre', 'categoria', 'descripcion', 
-                           'cantidad', 'unidad', 'ubicacion', 'estado', 'fecha_registro'])
+                           'cantidad', 'unidad', 'ubicacion', 'estado', 'fecha_registro', 'qr_code'])
     
     if not os.path.exists(PRESTAMOS_CSV):
         with open(PRESTAMOS_CSV, 'w', newline='', encoding='utf-8') as f:
@@ -585,14 +690,24 @@ def agregar_item():
             'unidad': unidad,
             'ubicacion': ubicacion,
             'estado': 'disponible' if int(cantidad) > 0 else 'agotado',
-            'fecha_registro': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            'fecha_registro': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'qr_code': ''
         }
+        
+        # Generar código QR para el ítem
+        try:
+            item_url = f"http://{request.host}/inventario/item/{nuevo_item['id_item']}"
+            qr_filename = generar_qr_item(nuevo_item['id_item'], codigo, nombre)
+            if qr_filename:
+                nuevo_item['qr_code'] = qr_filename
+        except Exception as e:
+            print(f"Error generando QR: {e}")
         
         items.append(nuevo_item)
         
         if escribir_csv(INVENTARIO_CSV, items, 
                        ['id_item', 'codigo', 'nombre', 'categoria', 'descripcion', 
-                        'cantidad', 'unidad', 'ubicacion', 'estado', 'fecha_registro']):
+                        'cantidad', 'unidad', 'ubicacion', 'estado', 'fecha_registro', 'qr_code']):
             flash(f'✅ Ítem "{nombre}" agregado correctamente (Código: {codigo})', 'success')
         else:
             flash('Error al guardar el ítem', 'danger')
@@ -635,7 +750,7 @@ def editar_item(id_item):
         if item_encontrado:
             if escribir_csv(INVENTARIO_CSV, items, 
                            ['id_item', 'codigo', 'nombre', 'categoria', 'descripcion', 
-                            'cantidad', 'unidad', 'ubicacion', 'estado', 'fecha_registro']):
+                            'cantidad', 'unidad', 'ubicacion', 'estado', 'fecha_registro', 'qr_code']):
                 flash('✅ Ítem actualizado correctamente', 'success')
             else:
                 flash('Error al actualizar el ítem', 'danger')
@@ -655,12 +770,21 @@ def eliminar_item(id_item):
     """Eliminar ítem"""
     try:
         items = leer_csv(INVENTARIO_CSV)
+        
+        # Eliminar archivo QR si existe
+        for item in items:
+            if item['id_item'] == id_item and item.get('qr_code'):
+                qr_path = os.path.join(QR_FOLDER, item['qr_code'])
+                if os.path.exists(qr_path):
+                    os.remove(qr_path)
+                break
+        
         items_filtrados = [item for item in items if item['id_item'] != id_item]
         
         if len(items_filtrados) < len(items):
             if escribir_csv(INVENTARIO_CSV, items_filtrados, 
                            ['id_item', 'codigo', 'nombre', 'categoria', 'descripcion', 
-                            'cantidad', 'unidad', 'ubicacion', 'estado', 'fecha_registro']):
+                            'cantidad', 'unidad', 'ubicacion', 'estado', 'fecha_registro', 'qr_code']):
                 flash('✅ Ítem eliminado correctamente', 'success')
             else:
                 flash('Error al eliminar el ítem', 'danger')
@@ -671,6 +795,80 @@ def eliminar_item(id_item):
     
     except Exception as e:
         flash(f'Error al eliminar ítem: {str(e)}', 'danger')
+        return redirect(url_for('inventario'))
+
+@app.route('/inventario/item/<id_item>')
+@login_required
+def ver_item(id_item):
+    """Ver detalle de un ítem"""
+    try:
+        items = leer_csv(INVENTARIO_CSV)
+        item = next((i for i in items if i['id_item'] == id_item), None)
+        
+        if not item:
+            flash('Ítem no encontrado', 'danger')
+            return redirect(url_for('inventario'))
+        
+        # Obtener historial de préstamos del ítem
+        prestamos = leer_csv(PRESTAMOS_CSV)
+        historial = [p for p in prestamos if p['id_item'] == id_item]
+        historial.sort(key=lambda x: x.get('fecha_prestamo', ''), reverse=True)
+        
+        # Generar QR para vista
+        qr_data = f"XONILAB - {item['codigo']}\n{item['nombre']}\n{item['descripcion']}\nStock: {item['cantidad']} {item['unidad']}"
+        qr_base64 = obtener_qr_base64(qr_data)
+        
+        return render_template('item_detalle.html', item=item, historial=historial, qr_base64=qr_base64)
+    
+    except Exception as e:
+        flash(f'Error al cargar el ítem: {str(e)}', 'danger')
+        return redirect(url_for('inventario'))
+
+@app.route('/inventario/qr/<id_item>')
+@login_required
+def descargar_qr_item(id_item):
+    """Descargar código QR del ítem"""
+    try:
+        items = leer_csv(INVENTARIO_CSV)
+        item = next((i for i in items if i['id_item'] == id_item), None)
+        
+        if not item:
+            flash('Ítem no encontrado', 'danger')
+            return redirect(url_for('inventario'))
+        
+        # Si ya tiene QR guardado, enviarlo
+        if item.get('qr_code'):
+            qr_path = os.path.join(QR_FOLDER, item['qr_code'])
+            if os.path.exists(qr_path):
+                return send_file(qr_path, as_attachment=True, download_name=f"QR_{item['codigo']}.png")
+        
+        # Si no tiene QR, generarlo
+        item_url = f"http://{request.host}/inventario/item/{item['id_item']}"
+        qr = qrcode.QRCode(version=1, box_size=10, border=4)
+        qr.add_data(f"XONILAB - {item['codigo']}\n{item['nombre']}\n{item_url}")
+        qr.make(fit=True)
+        
+        qr_image = qr.make_image(fill_color="black", back_color="white")
+        
+        # Guardar para futuras descargas
+        qr_filename = f"qr_{item['id_item']}.png"
+        qr_path = os.path.join(QR_FOLDER, qr_filename)
+        qr_image.save(qr_path)
+        
+        # Actualizar registro del item
+        item['qr_code'] = qr_filename
+        escribir_csv(INVENTARIO_CSV, items, 
+                    ['id_item', 'codigo', 'nombre', 'categoria', 'descripcion', 
+                     'cantidad', 'unidad', 'ubicacion', 'estado', 'fecha_registro', 'qr_code'])
+        
+        # Enviar archivo
+        img_io = BytesIO()
+        qr_image.save(img_io, 'PNG')
+        img_io.seek(0)
+        return send_file(img_io, mimetype='image/png', as_attachment=True, download_name=f"QR_{item['codigo']}.png")
+    
+    except Exception as e:
+        flash(f'Error al generar QR: {str(e)}', 'danger')
         return redirect(url_for('inventario'))
 
 # =============================================
@@ -767,7 +965,7 @@ def nuevo_prestamo():
             
             if not escribir_csv(INVENTARIO_CSV, items, 
                                ['id_item', 'codigo', 'nombre', 'categoria', 'descripcion', 
-                                'cantidad', 'unidad', 'ubicacion', 'estado', 'fecha_registro']):
+                                'cantidad', 'unidad', 'ubicacion', 'estado', 'fecha_registro', 'qr_code']):
                 flash('Error al actualizar el inventario', 'danger')
                 return redirect(url_for('prestamos'))
         
@@ -864,7 +1062,7 @@ def devolver_prestamo(id_prestamo):
                             'fecha_devolucion', 'cantidad', 'estado', 'observaciones']) and
                 escribir_csv(INVENTARIO_CSV, items, 
                            ['id_item', 'codigo', 'nombre', 'categoria', 'descripcion', 
-                            'cantidad', 'unidad', 'ubicacion', 'estado', 'fecha_registro'])):
+                            'cantidad', 'unidad', 'ubicacion', 'estado', 'fecha_registro', 'qr_code'])):
                 flash('✅ Préstamo devuelto correctamente', 'success')
             else:
                 flash('Error al guardar los cambios', 'danger')
@@ -1629,6 +1827,13 @@ def backup():
             for csv_file in csv_files:
                 if os.path.exists(csv_file):
                     zipf.write(csv_file, os.path.basename(csv_file))
+            
+            # Agregar códigos QR
+            if os.path.exists(QR_FOLDER):
+                for qr_file in os.listdir(QR_FOLDER):
+                    qr_path = os.path.join(QR_FOLDER, qr_file)
+                    if os.path.isfile(qr_path):
+                        zipf.write(qr_path, os.path.join('qrcodes', qr_file))
         
         # Obtener lista de backups
         backups = []
@@ -1677,10 +1882,15 @@ if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5005))
     debug = os.environ.get('DEBUG', 'True').lower() == 'true'
     
-    # Mostrar información de inicio
-    print("=" * 70)
+    # URL del sistema
+    url = f"http://{host}:{port}"
+    if host == '0.0.0.0':
+        url = f"http://localhost:{port}"
+    
+    # Mostrar información de inicio con QR
+    print("=" * 80)
     print("🔬 XONILAB - Sistema de Gestión de Laboratorio")
-    print("=" * 70)
+    print("=" * 80)
     print("  Sistema completo para la gestión de laboratorios educativos")
     print()
     print("👤 INFORMACIÓN DEL DESARROLLADOR:")
@@ -1689,13 +1899,31 @@ if __name__ == '__main__':
     print("  Laboratorio de Ciencias")
     print()
     print("🚀 INICIANDO SISTEMA...")
-    print(f"  URL: http://{host}:{port}")
+    print(f"  📱 ESCANEA EL CÓDIGO QR PARA ACCEDER:")
+    print()
+    
+    # Generar y mostrar QR en terminal
+    try:
+        qr_lines = generar_qr_terminal(url)
+        for line in qr_lines:
+            print(f"  {line}")
+    except:
+        print("  ⚠️  No se pudo generar el código QR en terminal")
+    
+    print()
+    print(f"  URL: {url}")
     print(f"  Modo debug: {debug}")
     print()
     print("🔐 CREDENCIALES DE ACCESO:")
     print("  Usuario: XONILAB")
     print("  Contraseña: laboratorio")
-    print("=" * 70)
+    print()
+    print("📦 FUNCIONALIDADES QR AGREGADAS:")
+    print("  ✓ QR del sistema en terminal")
+    print("  ✓ QR para cada ítem del inventario")
+    print("  ✓ Descarga de códigos QR")
+    print("  ✓ Respaldo automático de QR en backups")
+    print("=" * 80)
     
     # Iniciar servidor
     app.run(host=host, port=port, debug=debug)
