@@ -1,38 +1,8 @@
-#XONILAB - Sistema de Gestion de Laboratorio
-#Version 3.0 - 2026 - Con soporte para Códigos QR
-#Desarrollado por XONIDU - Darian Alberto Camacho Salas
-
-#DEPENDENCIAS PRINCIPALES
-flask
-qrcode
-pillow
-
-#ARCH LINUX / MANJARO
-#sudo pacman -S python-pip
-#pip install flask qrcode pillow --break-system-packages
-#python start.py
-
-#UBUNTU / DEBIAN
-#sudo apt update
-#sudo apt install python3 python3-pip -y
-#pip3 install flask qrcode pillow
-#python3 start.py
-
-#WINDOWS
-#pip install flask qrcode pillow
-#python start.py
-
-#macOS
-#brew install python3
-#pip3 install flask qrcode pillow
-#python3 start.py
-
-#INSTALACION RAPIDA
-#pip install -r requirements.txt
-
-#CREDENCIALES
-#Usuario: XONILAB
-#Contraseña: laboratorio
-
-#PUERTO: 5005
-#URL: http://localhost:5005
+Flask==2.3.3
+qrcode==7.4.2
+pillow==10.0.1
+Werkzeug==2.3.7
+Jinja2==3.1.2
+itsdangerous==2.1.2
+click==8.1.7
+MarkupSafe==2.1.3
