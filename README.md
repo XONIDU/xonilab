@@ -1,5 +1,7 @@
 # 📊 XONILAB - Sistema de Gestión de Laboratorio
 
+## **Creador:** Darian Alberto Camacho Salas 
+
 **Advertencia:** Sistema para fines educativos y gestión interna de laboratorios. No debe usarse con fines malintencionados ni para acceder a sistemas no autorizados. El autor no se hace responsable del uso indebido.
 
 ## 🎯 ¿Qué es XONILAB?
@@ -182,11 +184,11 @@ Para cambiar la configuración, modifica las variables en `start.py`:
 
 - **Proyecto:** XONIDU
 - **Creador:** Darian Alberto Camacho Salas
-- **Versión:** 3.0
-- **Año:** 2025
+- **Versión:** 4.2.0
+- **Año:** 2026
 - **#Somos XONIDU**
 
 ---
 
 **Sobre el proyecto:** Un sistema completo para la gestión eficiente de laboratorios educativos, desarrollado con tecnologías web modernas y almacenamiento en CSV para facilitar su implementación en entornos educativos.
-**Creador:** Darian Alberto Camacho Salas
+## **Creador:** Darian Alberto Camacho Salas
