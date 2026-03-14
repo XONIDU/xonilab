@@ -5,7 +5,7 @@
 XONILAB - Sistema de Gestión de Laboratorio
 Este script ejecuta xonilab.py y verifica dependencias
 Desarrollado por: Darian Alberto Camacho Salas
-#Somos XONINDU
+#XONINDU
 """
 
 import subprocess
