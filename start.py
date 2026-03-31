@@ -2,20 +2,20 @@
 # -*- coding: utf-8 -*-
 
 """
-XONILAB - Sistema de Gestión de Laboratorio
-Este script ejecuta xonilab.py y verifica dependencias
+XONILAB 2026 - Lanzador Universal
+Este script detecta el sistema, instala dependencias y ejecuta xonilab.py
+Genera un archivo .bat en Windows para ejecutar con permisos de administrador
 Desarrollado por: Darian Alberto Camacho Salas
-# SOMOS XONINDU
 """
 
 import subprocess
 import sys
 import os
-import platform
-import shutil
-import importlib.util
 import webbrowser
 import time
+import platform
+import threading
+import ctypes
 
 # Colores para terminal
 class Colors:
@@ -45,39 +45,33 @@ if not Colors.supports_color():
         if not attr.startswith('_') and attr != 'supports_color':
             setattr(Colors, attr, '')
 
+# Dependencias necesarias para XONILAB
+REQUISITOS = [
+    'Flask==2.3.3',
+    'qrcode==7.4.2',
+    'pillow==10.0.1',
+    'Werkzeug==2.3.7',
+    'Jinja2==3.1.2',
+    'itsdangerous==2.1.2',
+    'click==8.1.7',
+    'MarkupSafe==2.1.3'
+]
+
+def is_admin():
+    """Verifica si el script se ejecuta como administrador en Windows"""
+    if platform.system() == 'Windows':
+        try:
+            return ctypes.windll.shell32.IsUserAnAdmin()
+        except:
+            return False
+    return True
+
 def get_system():
     """Detecta el sistema operativo"""
     return platform.system().lower()
 
-def get_linux_distro():
-    """Detecta la distribucion de Linux"""
-    if get_system() != 'linux':
-        return None
-    
-    try:
-        if os.path.exists('/etc/os-release'):
-            with open('/etc/os-release', 'r') as f:
-                content = f.read().lower()
-                if 'ubuntu' in content:
-                    return 'ubuntu'
-                elif 'debian' in content:
-                    return 'debian'
-                elif 'fedora' in content:
-                    return 'fedora'
-                elif 'centos' in content:
-                    return 'centos'
-                elif 'arch' in content:
-                    return 'arch'
-                elif 'manjaro' in content:
-                    return 'manjaro'
-                elif 'mint' in content:
-                    return 'mint'
-        return 'linux-generico'
-    except:
-        return 'linux-generico'
-
 def get_python_command():
-    """Obtiene el comando Python correcto"""
+    """Obtiene el comando Python correcto según el sistema"""
     if get_system() == 'windows':
         return ['python']
     else:
@@ -87,36 +81,45 @@ def get_python_command():
         except:
             return ['python']
 
+def get_pip_command():
+    """Obtiene el comando pip correcto según el sistema"""
+    if get_system() == 'windows':
+        return [sys.executable, '-m', 'pip']
+    else:
+        return [sys.executable, '-m', 'pip']
+
+def get_install_flags():
+    """Obtiene los flags de instalación según el sistema"""
+    flags = []
+    if get_system() == 'darwin':
+        flags.append('--user')
+    return flags
+
 def print_banner():
     """Muestra el banner de XONILAB"""
     sistema = get_system()
-    distro = get_linux_distro()
     
     sistema_texto = {
         'windows': 'WINDOWS',
-        'linux': f'LINUX ({distro.upper()})' if distro else 'LINUX',
+        'linux': 'LINUX',
         'darwin': 'MACOS'
     }.get(sistema, 'DESCONOCIDO')
     
     banner = f"""
-{Colors.BLUE}{Colors.BOLD}═══════════════════════════════════════════════════════════
-                    XONILAB v3.0                    
-              Sistema de Gestión de Laboratorio            
-              Inventario • Préstamos • Alumnos                
-              Deudas • Calendario • Reportes
-              Códigos QR • Backups
-                                                          
-              Sistema detectado: {sistema_texto}            
-                                                          
-              Desarrollado por: Darian Alberto            
-              Camacho Salas                               
-              #Somos XONINDU
-═══════════════════════════════════════════════════════════{Colors.END}
+{Colors.BLUE}{Colors.BOLD}╔══════════════════════════════════════════════════════════╗
+║                     XONILAB 2026 v3.0                      ║
+║              Sistema de Gestion de Laboratorio              ║
+║                                                            ║
+║               Sistema detectado: {sistema_texto}            ║
+║                                                            ║
+║               Desarrollado por: Darian Alberto               ║
+║                      Camacho Salas                           ║
+╚══════════════════════════════════════════════════════════════╝{Colors.END}
     """
     print(banner)
 
 def check_python():
-    """Verifica Python instalado"""
+    """Verifica que Python esta instalado"""
     try:
         cmd = get_python_command() + ['--version']
         subprocess.run(cmd, capture_output=True, check=True)
@@ -124,209 +127,277 @@ def check_python():
     except:
         return False
 
-def check_command(comando):
-    """Verifica si un comando existe"""
-    return shutil.which(comando) is not None
+def check_pip():
+    """Verifica que pip esta instalado y funciona"""
+    try:
+        cmd = get_pip_command() + ['--version']
+        subprocess.run(cmd, capture_output=True, check=True)
+        return True
+    except:
+        return False
 
-def check_python_module(module_name):
-    """Verifica si un modulo de Python esta instalado"""
-    return importlib.util.find_spec(module_name) is not None
+def install_pip_windows():
+    """Instala pip en Windows si no esta disponible"""
+    print(f"{Colors.YELLOW}Pip no encontrado. Instalando pip...{Colors.END}")
+    try:
+        import urllib.request
+        print("  Descargando get-pip.py...")
+        urllib.request.urlretrieve('https://bootstrap.pypa.io/get-pip.py', 'get-pip.py')
+        
+        print("  Instalando pip...")
+        subprocess.run([sys.executable, 'get-pip.py'], check=True)
+        
+        os.remove('get-pip.py')
+        
+        print(f"{Colors.GREEN}  Pip instalado correctamente{Colors.END}")
+        return True
+    except Exception as e:
+        print(f"{Colors.RED}  Error instalando pip: {e}{Colors.END}")
+        return False
 
 def check_dependencies():
-    """Verifica las dependencias de Python necesarias"""
-    print(f"\n{Colors.BOLD}Verificando dependencias de Python...{Colors.END}")
+    """Verifica que dependencias necesita XONILAB"""
+    print(f"\n{Colors.BOLD}Verificando dependencias para XONILAB...{Colors.END}")
     
-    dependencias = [
-        ('flask', 'flask', 'Framework web', 'flask'),
-        ('qrcode', 'qrcode[pil]', 'Códigos QR', 'qrcode'),
-        ('pillow', 'pillow', 'Imágenes', 'PIL'),
-    ]
+    missing = []
+    for req in REQUISITOS:
+        package = req.split('==')[0].lower()
+        try:
+            if package == 'flask':
+                __import__('flask')
+            elif package == 'werkzeug':
+                __import__('werkzeug')
+            elif package == 'jinja2':
+                __import__('jinja2')
+            elif package == 'click':
+                __import__('click')
+            elif package == 'markupsafe':
+                __import__('markupsafe')
+            elif package == 'itsdangerous':
+                __import__('itsdangerous')
+            elif package == 'qrcode':
+                __import__('qrcode')
+            elif package == 'pillow':
+                __import__('PIL')
+            else:
+                __import__(package)
+            print(f"{Colors.GREEN}  - {req.split('==')[0]} OK{Colors.END}")
+        except ImportError:
+            print(f"{Colors.YELLOW}  - {req.split('==')[0]} (faltante){Colors.END}")
+            missing.append(req)
     
-    faltantes = []
-    
-    for modulo, paquete, desc, import_name in dependencias:
-        if check_python_module(import_name):
-            print(f"{Colors.GREEN}  - {modulo}: OK{Colors.END}")
-        else:
-            print(f"{Colors.YELLOW}  - {modulo}: FALTANTE{Colors.END}")
-            faltantes.append(paquete)
-    
-    return faltantes
+    return missing
 
-def install_dependencies(faltantes):
+def install_dependencies(missing):
     """Instala las dependencias faltantes"""
-    if not faltantes:
+    if not missing:
+        print(f"\n{Colors.GREEN}Todas las dependencias estan instaladas{Colors.END}")
         return True
     
     print(f"\n{Colors.BOLD}Instalando dependencias faltantes...{Colors.END}")
     
-    sistema = get_system()
-    distro = get_linux_distro()
+    pip_cmd = get_pip_command()
+    flags = get_install_flags()
     
-    if sistema == 'windows':
-        # Windows - instalación normal
-        cmd = [sys.executable, '-m', 'pip', 'install'] + faltantes
+    if flags:
+        print(f"{Colors.YELLOW}Flags: {' '.join(flags)}{Colors.END}")
+    
+    success = True
+    for req in missing:
+        print(f"  Instalando {req}...")
         try:
-            print(f"Ejecutando: {' '.join(cmd)}")
-            subprocess.run(cmd, check=True)
-            print(f"{Colors.GREEN}Dependencias instaladas correctamente{Colors.END}")
-            return True
+            cmd = pip_cmd + ['install', req] + flags
+            subprocess.run(cmd, check=True, capture_output=True)
+            print(f"{Colors.GREEN}  - {req} instalado{Colors.END}")
         except subprocess.CalledProcessError as e:
-            print(f"{Colors.RED}Error instalando dependencias: {e}{Colors.END}")
-            return False
+            print(f"{Colors.RED}  Error instalando {req}{Colors.END}")
+            # Intentar sin flags
+            try:
+                print(f"  Intentando sin flags...")
+                cmd = pip_cmd + ['install', req]
+                subprocess.run(cmd, check=True, capture_output=True)
+                print(f"{Colors.GREEN}  - {req} instalado (sin flags){Colors.END}")
+            except:
+                print(f"     {e}")
+                success = False
     
-    elif sistema == 'darwin':
-        # macOS - usar --user
-        cmd = [sys.executable, '-m', 'pip', 'install', '--user'] + faltantes
-        try:
-            print(f"Ejecutando: {' '.join(cmd)}")
-            subprocess.run(cmd, check=True)
-            print(f"{Colors.GREEN}Dependencias instaladas correctamente{Colors.END}")
-            return True
-        except:
-            print(f"{Colors.RED}Error instalando dependencias{Colors.END}")
-            return False
-    
+    if success:
+        print(f"\n{Colors.GREEN}Todas las dependencias instaladas correctamente{Colors.END}")
     else:
-        # Linux - intentar con --break-system-packages si es Arch
-        if distro in ['arch', 'manjaro', 'fedora']:
-            cmd = [sys.executable, '-m', 'pip', 'install', '--break-system-packages'] + faltantes
-            try:
-                print(f"Ejecutando: {' '.join(cmd)}")
-                subprocess.run(cmd, check=True)
-                print(f"{Colors.GREEN}Dependencias instaladas correctamente (--break-system-packages){Colors.END}")
-                return True
-            except:
-                pass
-        
-        # Segundo intento: --user
-        try:
-            cmd = [sys.executable, '-m', 'pip', 'install', '--user'] + faltantes
-            print(f"Ejecutando: {' '.join(cmd)}")
-            subprocess.run(cmd, check=True)
-            print(f"{Colors.GREEN}Dependencias instaladas correctamente (--user){Colors.END}")
-            return True
-        except subprocess.CalledProcessError as e:
-            print(f"{Colors.RED}Error instalando dependencias: {e}{Colors.END}")
-            print(f"\nInstala manualmente:")
-            print(f"  pip install {' '.join(faltantes)}")
-            if distro in ['arch', 'manjaro']:
-                print(f"  pip install --break-system-packages {' '.join(faltantes)}")
-            return False
+        print(f"\n{Colors.YELLOW}Algunas dependencias no se instalaron{Colors.END}")
+    
+    return success
 
-def verificar_importaciones():
-    """Verifica que todas las importaciones necesarias funcionen"""
-    print(f"\n{Colors.BOLD}Verificando importaciones...{Colors.END}")
-    
-    modulos = [
-        ('flask', 'Flask'),
-        ('qrcode', 'qrcode'),
-        ('PIL', 'Pillow'),
-    ]
-    
-    todos_ok = True
-    for modulo, nombre in modulos:
-        try:
-            __import__(modulo)
-            print(f"{Colors.GREEN}  - {nombre}: OK{Colors.END}")
-        except ImportError as e:
-            print(f"{Colors.RED}  - {nombre}: FALLO - {e}{Colors.END}")
-            todos_ok = False
-    
-    return todos_ok
+def open_browser():
+    """Abre el navegador despues de unos segundos"""
+    time.sleep(3)
+    url = 'http://localhost:5005'
+    try:
+        webbrowser.open(url)
+        print(f"{Colors.GREEN}Navegador abierto en {url}{Colors.END}")
+    except:
+        print(f"{Colors.YELLOW}No se pudo abrir el navegador automaticamente{Colors.END}")
+        print(f"   Abre manualmente: {url}")
 
-def crear_directorios():
-    """Crea los directorios necesarios"""
-    directorios = ['data', 'static/qrcodes', 'backups', 'templates']
-    
-    for dir_path in directorios:
-        full_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), dir_path)
-        if not os.path.exists(full_path):
-            try:
-                os.makedirs(full_path)
-                print(f"{Colors.GREEN}Creado directorio: {dir_path}{Colors.END}")
-            except:
-                print(f"{Colors.YELLOW}No se pudo crear: {dir_path}{Colors.END}")
-
-def crear_accesos_directos():
-    """Crea accesos directos para cada sistema"""
+def create_windows_bat():
+    """Crea archivos .bat para Windows"""
     sistema = get_system()
+    if sistema != 'windows':
+        return
     
-    if sistema == 'windows':
-        # Crear .bat para Windows
-        with open('INICIAR_XONILAB.bat', 'w') as f:
-            f.write("""@echo off
-title XONILAB - Sistema de Gestion de Laboratorio
-color 1F
+    # Archivo con permisos de administrador
+    admin_bat_content = '''@echo off
+title XONILAB 2026 - Sistema de Gestion de Laboratorio
+color 0A
+cls
+
 echo ========================================
-echo      XONILAB v3.0
-echo      Sistema de Gestion de Laboratorio
+echo      XONILAB 2026 - Gestion de Laboratorio
 echo      Desarrollado por Darian Alberto
 echo ========================================
 echo.
-python start.py
+
+:: Verificar si se ejecuta como administrador
+net session >nul 2>&1
+if %errorlevel% neq 0 (
+    echo [AVISO] Se requieren permisos de administrador para instalar dependencias
+    echo.
+    echo Solicitando permisos...
+    echo.
+    
+    :: Crear script temporal para ejecutar con admin
+    echo Set UAC = CreateObject^("Shell.Application"^) > "%temp%\\getadmin.vbs"
+    echo UAC.ShellExecute "%~s0", "", "", "runas", 1 >> "%temp%\\getadmin.vbs"
+    "%temp%\\getadmin.vbs"
+    del "%temp%\\getadmin.vbs"
+    exit /B
+)
+
+echo [OK] Permisos de administrador obtenidos
+echo.
+
+:: Verificar Python
+python --version >nul 2>&1
+if errorlevel 1 (
+    echo [ERROR] Python no esta instalado
+    echo.
+    echo Descarga Python desde: https://www.python.org/downloads/
+    echo IMPORTANTE: Marca "Add Python to PATH" durante la instalacion
+    echo.
+    pause
+    start https://www.python.org/downloads/
+    exit
+)
+
+echo [OK] Python instalado
+python --version
+echo.
+
+:: Verificar pip
+python -m pip --version >nul 2>&1
+if errorlevel 1 (
+    echo [AVISO] Pip no encontrado. Instalando pip...
+    python -m ensurepip --upgrade
+)
+
+echo [OK] Pip disponible
+echo.
+
+:: Instalar dependencias
+echo Instalando dependencias necesarias...
+echo.
+
+python -m pip install Flask==2.3.3
+python -m pip install qrcode==7.4.2
+python -m pip install pillow==10.0.1
+python -m pip install Werkzeug==2.3.7
+python -m pip install Jinja2==3.1.2
+python -m pip install itsdangerous==2.1.2
+python -m pip install click==8.1.7
+python -m pip install MarkupSafe==2.1.3
+
+echo.
+echo [OK] Dependencias instaladas
+echo.
+
+:: Crear carpetas necesarias
+if not exist "data" mkdir data
+if not exist "static\\qrcodes" mkdir static\\qrcodes
+if not exist "backups" mkdir backups
+
+:: Iniciar XONILAB
+echo ========================================
+echo Iniciando XONILAB...
+echo ========================================
+echo.
+echo Accede desde: http://localhost:5005
+echo Usuario: XONILAB
+echo Contrasena: laboratorio
+echo.
+echo Para detener el servidor presiona Ctrl+C
+echo ========================================
+echo.
+
+start http://localhost:5005
+python xonilab.py
+
 pause
-""")
-        print(f"{Colors.GREEN}Creado INICIAR_XONILAB.bat - Haz doble clic para ejecutar{Colors.END}")
+'''
     
+    admin_bat_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'XONILAB_ADMIN.bat')
+    with open(admin_bat_path, 'w', encoding='utf-8') as f:
+        f.write(admin_bat_content)
+    print(f"{Colors.GREEN}Archivo XONILAB_ADMIN.bat creado - Ejecuta como administrador si hay problemas{Colors.END}")
+    
+    # Archivo simple sin admin
+    simple_bat = '''@echo off
+title XONILAB 2026
+color 0A
+echo ========================================
+echo      XONILAB 2026 - Gestion de Laboratorio
+echo ========================================
+echo.
+echo Iniciando XONILAB...
+echo.
+echo Accede desde: http://localhost:5005
+echo Usuario: XONILAB
+echo Contrasena: laboratorio
+echo.
+echo Para detener presiona Ctrl+C
+echo ========================================
+echo.
+start http://localhost:5005
+python xonilab.py
+pause
+'''
+    simple_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'XONILAB.bat')
+    with open(simple_path, 'w', encoding='utf-8') as f:
+        f.write(simple_bat)
+    print(f"{Colors.GREEN}Archivo XONILAB.bat creado - Doble clic para ejecutar{Colors.END}")
+
+def ensure_directories():
+    """Asegura que existen las carpetas necesarias"""
+    directories = ['data', 'static/qrcodes', 'backups']
+    for directory in directories:
+        os.makedirs(directory, exist_ok=True)
+    
+    print(f"{Colors.GREEN}Carpetas necesarias creadas/verificadas{Colors.END}")
+
+def mostrar_instrucciones_python():
+    """Muestra instrucciones para instalar Python segun el sistema"""
+    sistema = get_system()
+    
+    if sistema == 'windows':
+        print(f"   Descarga Python desde: https://www.python.org/downloads/")
+        print(f"   IMPORTANTE: Al instalar, marca 'Add Python to PATH'")
     elif sistema == 'linux':
-        # Crear .sh para Linux
-        with open('INICIAR_XONILAB.sh', 'w') as f:
-            f.write("""#!/bin/bash
-echo "========================================"
-echo "      XONILAB v3.0"
-echo "      Sistema de Gestion de Laboratorio"
-echo "      Desarrollado por Darian Alberto"
-echo "========================================"
-echo ""
-python3 start.py
-read -p "Presiona Enter para salir"
-""")
-        os.chmod('INICIAR_XONILAB.sh', 0o755)
-        print(f"{Colors.GREEN}Creado INICIAR_XONILAB.sh - Ejecuta con: ./INICIAR_XONILAB.sh{Colors.END}")
-    
+        print(f"   Instala con: sudo apt install python3 python3-pip")
     elif sistema == 'darwin':
-        # Crear .command para Mac
-        with open('INICIAR_XONILAB.command', 'w') as f:
-            f.write("""#!/bin/bash
-cd "$(dirname "$0")"
-echo "========================================"
-echo "      XONILAB v3.0"
-echo "      Sistema de Gestion de Laboratorio"
-echo "      Desarrollado por Darian Alberto"
-echo "========================================"
-echo ""
-python3 start.py
-""")
-        os.chmod('INICIAR_XONILAB.command', 0o755)
-        print(f"{Colors.GREEN}Creado INICIAR_XONILAB.command - Haz doble clic para ejecutar{Colors.END}")
-
-def mostrar_credenciales():
-    """Muestra las credenciales de acceso"""
-    credenciales = f"""
-{Colors.BOLD}╔════════════════════════════════════════╗
-║      CREDENCIALES DE ACCESO          ║
-╠════════════════════════════════════════╣
-║  Usuario: {Colors.GREEN}XONILAB{Colors.END}                     ║
-║  Contraseña: {Colors.GREEN}laboratorio{Colors.END}                ║
-║                                        ║
-║  URL: {Colors.BLUE}http://localhost:5005{Colors.END}           ║
-╚════════════════════════════════════════╝{Colors.END}
-    """
-    print(credenciales)
-
-def abrir_navegador():
-    """Abre el navegador después de 3 segundos"""
-    time.sleep(3)
-    try:
-        webbrowser.open('http://localhost:5005')
-        print(f"{Colors.GREEN}Navegador abierto en http://localhost:5005{Colors.END}")
-    except:
-        print(f"{Colors.YELLOW}No se pudo abrir el navegador automáticamente{Colors.END}")
+        print(f"   Instala con: brew install python3")
 
 def main():
-    """Funcion principal"""
-    # Limpiar pantalla
+    """Funcion principal - Ejecuta XONILAB"""
+    # Limpiar pantalla segun sistema
     if get_system() == 'windows':
         os.system('cls')
     else:
@@ -335,94 +406,98 @@ def main():
     # Mostrar banner
     print_banner()
     
-    # Verificar Python
+    sistema = get_system()
+    
+    print(f"{Colors.BOLD}Sistema operativo:{Colors.END} {sistema}")
+    print(f"{Colors.BOLD}Python:{Colors.END} {sys.version.split()[0]}")
+    print(f"{Colors.BOLD}Ruta:{Colors.END} {os.path.dirname(os.path.abspath(__file__))}")
+    
+    # Crear archivos .bat solo para Windows
+    if sistema == 'windows':
+        create_windows_bat()
+        print()
+    
+    # Verificar que Python esta instalado
     if not check_python():
-        print(f"\n{Colors.RED}Error: Python no esta instalado{Colors.END}")
-        print("Instala Python desde: https://www.python.org/downloads/")
+        print(f"\n{Colors.RED}Error: Python no esta instalado o no esta en el PATH{Colors.END}")
+        mostrar_instrucciones_python()
         input(f"\n{Colors.YELLOW}Presiona Enter para salir...{Colors.END}")
         return
     
-    python_version = subprocess.run(get_python_command() + ['--version'], 
-                                   capture_output=True, text=True).stdout.strip()
-    print(f"{Colors.BOLD}Python:{Colors.END} {python_version}")
-    print(f"{Colors.BOLD}Directorio:{Colors.END} {os.path.dirname(os.path.abspath(__file__))}")
+    # Verificar pip en Windows e instalarlo si es necesario
+    if sistema == 'windows' and not check_pip():
+        print(f"\n{Colors.YELLOW}Pip no encontrado. Intentando instalar...{Colors.END}")
+        if not install_pip_windows():
+            print(f"\n{Colors.RED}No se pudo instalar pip automaticamente{Colors.END}")
+            print(f"   Ejecuta XONILAB_ADMIN.bat como administrador")
+            input(f"\n{Colors.YELLOW}Presiona Enter para salir...{Colors.END}")
+            return
     
-    # Crear directorios necesarios
-    crear_directorios()
+    # Verificar dependencias
+    missing = check_dependencies()
+    
+    # Instalar dependencias si faltan
+    if missing:
+        print(f"\n{Colors.YELLOW}Faltan {len(missing)} dependencias{Colors.END}")
+        
+        # En Windows, sugerir usar el .bat con admin
+        if sistema == 'windows':
+            print(f"\n{Colors.YELLOW}Se recomienda ejecutar XONILAB_ADMIN.bat como administrador{Colors.END}")
+            print(f"   para instalar las dependencias automaticamente")
+            respuesta = input(f"Intentar instalar ahora? (s/n): ")
+        else:
+            respuesta = input(f"Instalar ahora? (s/n): ")
+        
+        if respuesta.lower() == 's':
+            if not install_dependencies(missing):
+                print(f"\n{Colors.YELLOW}Continuando a pesar de errores...{Colors.END}")
+        else:
+            print(f"\n{Colors.YELLOW}No se instalaran dependencias. Puede haber errores.{Colors.END}")
+            if sistema == 'windows':
+                print(f"   Ejecuta XONILAB_ADMIN.bat como administrador para instalarlas")
+    
+    # Crear carpetas necesarias
+    ensure_directories()
     
     # Verificar que existe xonilab.py
     if not os.path.exists('xonilab.py'):
         print(f"\n{Colors.RED}Error: No se encuentra xonilab.py{Colors.END}")
-        print("Asegurate de que xonilab.py esta en el mismo directorio")
+        print(f"   Asegurate de que xonilab.py esta en la misma carpeta")
         input(f"\n{Colors.YELLOW}Presiona Enter para salir...{Colors.END}")
         return
     
-    # Verificar dependencias
-    faltantes = check_dependencies()
+    print(f"\n{Colors.BOLD}Iniciando XONILAB (Sistema de Gestion de Laboratorio)...{Colors.END}")
+    print(f"{Colors.BOLD}Credenciales:{Colors.END} Usuario: XONILAB | Contrasena: laboratorio")
     
-    if faltantes:
-        print(f"\n{Colors.YELLOW}Faltan dependencias: {', '.join(faltantes)}{Colors.END}")
-        respuesta = input("Instalar automaticamente? (s/n): ")
-        
-        if respuesta.lower() == 's':
-            if not install_dependencies(faltantes):
-                print(f"\n{Colors.RED}No se pudieron instalar las dependencias{Colors.END}")
-                print("Puedes instalarlas manualmente con:")
-                print(f"  pip install {' '.join(faltantes)}")
-                input(f"\n{Colors.YELLOW}Presiona Enter para continuar...{Colors.END}")
-    else:
-        print(f"{Colors.GREEN}Todas las dependencias estan instaladas{Colors.END}")
+    # Hilo para abrir el navegador
+    browser_thread = threading.Thread(target=open_browser)
+    browser_thread.daemon = True
+    browser_thread.start()
     
-    # Verificar que las importaciones funcionan
-    if not verificar_importaciones():
-        print(f"\n{Colors.RED}Error: No se pueden importar los módulos necesarios{Colors.END}")
-        input(f"\n{Colors.YELLOW}Presiona Enter para salir...{Colors.END}")
-        return
-    
-    # Mostrar credenciales
-    mostrar_credenciales()
-    
-    print(f"\n{Colors.BOLD}Iniciando XONILAB...{Colors.END}")
-    print(f"{Colors.BOLD}Servidor web en: {Colors.BLUE}http://localhost:5005{Colors.END}")
-    print(f"{Colors.BOLD}Para detener el servidor:{Colors.END} Ctrl+C")
-    print("-" * 60)
-    
-    # EJECUTAR xonilab.py
+    # Ejecutar xonilab.py
     try:
         python_cmd = get_python_command()
-        cmd = python_cmd + ['xonilab.py']
+        print(f"{Colors.BOLD}Ejecutando:{Colors.END} {' '.join(python_cmd + ['xonilab.py'])}")
+        print(f"{Colors.BOLD}Servidor:{Colors.END} http://localhost:5005")
+        print(f"{Colors.BOLD}Para detener:{Colors.END} Ctrl+C")
+        print("-" * 60)
         
-        # Abrir navegador automáticamente después de 3 segundos
-        import threading
-        threading.Thread(target=abrir_navegador, daemon=True).start()
+        subprocess.run(python_cmd + ['xonilab.py'])
         
-        # Ejecutar xonilab.py
-        resultado = subprocess.run(cmd)
-        
-        if resultado.returncode != 0:
-            print(f"\n{Colors.RED}Error: xonilab.py termino con codigo {resultado.returncode}{Colors.END}")
-            
-    except FileNotFoundError:
-        print(f"\n{Colors.RED}Error: No se encuentra xonilab.py{Colors.END}")
     except KeyboardInterrupt:
         print(f"\n{Colors.YELLOW}Servidor detenido por el usuario{Colors.END}")
+    except FileNotFoundError as e:
+        print(f"\n{Colors.RED}Error: No se encuentra Python o xonilab.py{Colors.END}")
+        print(f"   {e}")
     except Exception as e:
         print(f"\n{Colors.RED}Error ejecutando xonilab.py: {e}{Colors.END}")
     
-    print(f"\n{Colors.BLUE}Gracias por usar XONILAB{Colors.END}")
-    print(f"{Colors.BLUE}Desarrollado por Darian Alberto Camacho Salas{Colors.END}")
-    print(f"{Colors.BLUE}#Somos XONINDU{Colors.END}")
-    
-    # Pausa al final
-    if get_system() != 'windows':
+    print(f"\n{Colors.BLUE}Gracias por usar XONILAB 2026{Colors.END}")
+    if sistema != 'windows':
         input(f"\n{Colors.YELLOW}Presiona Enter para salir...{Colors.END}")
 
 if __name__ == '__main__':
     try:
-        # Crear accesos directos
-        crear_accesos_directos()
-        
-        # Ejecutar programa principal
         main()
     except KeyboardInterrupt:
         print(f"\n{Colors.YELLOW}Saliendo...{Colors.END}")
