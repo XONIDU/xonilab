@@ -39,6 +39,28 @@ El lanzador detectará automáticamente tu sistema operativo, verificará e inst
 python xonilab.py
 ```
 
+---
+### Opción 2 – Comando `xoninstall` (recomendado para futuras herramientas XONI)
+
+Agrega la siguiente función a tu `~/.bashrc` con un solo comando:
+
+```bash
+echo 'xoninstall() { if [ -z "$1" ]; then echo "Uso: xoninstall <repo>"; echo "Ej: xoninstall xoniran"; else git clone "https://github.com/XONIDU/$1.git"; fi; }' >> ~/.bashrc && source ~/.bashrc && echo "✅ Listo. Usa: xoninstall xonicli"
+```
+
+Luego simplemente escribe:
+
+```bash
+xoninstall xonicli
+cd xonicli
+pip install -r requisitos.txt
+python start.py
+```
+
+> **Nota:** Esta función te servirá para instalar cualquier otra herramienta futura de XONIDU (por ejemplo `xoninstall xonicli`).
+
+---
+
 ### Acceso al sistema
 
 1. Abre tu navegador y accede a: `http://localhost:5005`
