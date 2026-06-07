@@ -51,8 +51,8 @@ echo 'xoninstall() { if [ -z "$1" ]; then echo "Uso: xoninstall <repo>"; echo "E
 Luego simplemente escribe:
 
 ```bash
-xoninstall xonicli
-cd xonicli
+xoninstall xonilab
+cd xonilab
 pip install -r requisitos.txt
 python start.py
 ```
